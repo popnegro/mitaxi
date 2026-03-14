@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaxiGO Mendoza | Pedir Taxi con GPS</title>
+    <title>TaxiGO Mendoza | Pedir Taxi</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        :root { --yellow: #ffc107; --dark: #212529; }
+        :root { --success: #25d366; }
         body { background: #f4f4f4; font-family: 'Roboto', sans-serif; }
-        .main-card { background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        #map { height: 175px; background: #eee; border-radius: 12px; margin-bottom: 15px; }
-        .btn-whatsapp { background: #25d366; color: #fff; padding: 15px; border-radius: 10px; border: none; width: 100%; font-weight: bold; }
+        .main-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        #map { height: 250px; background: #eee; border-radius: 15px; margin-bottom: 15px; }
+        .btn-whatsapp { background: var(--success); color: #fff; padding: 15px; border-radius: 12px; border: none; width: 100%; font-weight: bold; }
         .btn-whatsapp:disabled { background: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <main class="container py-5">
+    <main class="container py-4">
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card main-card">
                     <small class="text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> <span id="ubicacion-status">Localizando...</span></small>
-                    <div id="map" class="shadow-sm mt-2"></div>
+                    <div id="map"></div>
 
                     <div class="mb-3">
-                        <label class="form-label">Nombre</label>
-                        <input type="text" id="user-name" class="form-control" placeholder="Tu nombre" autocomplete="name">
+                        <label class="form-label fw-bold">Nombre</label>
+                        <input type="text" id="user-name" class="form-control" placeholder="Tu nombre">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">¿A dónde vas?</label>
-                        <input type="text" id="destino" class="form-control" placeholder="Ej: San Martín 123" autocomplete="street-address" onfocusout="calcularPrecio()">
+                        <label class="form-label fw-bold">¿A dónde vas?</label>
+                        <input type="text" id="destino" class="form-control" placeholder="Ej: Plaza Independencia">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Forma de Pago</label>
+                        <label class="form-label fw-bold">Forma de Pago</label>
                         <select id="forma-pago" class="form-select">
                             <option value="Efectivo">Efectivo</option>
                             <option value="Mercado Pago">Mercado Pago</option>
@@ -43,14 +43,12 @@
                         </select>
                     </div>
 
-                    <div class="alert alert-light text-center border">
-                        <small class="text-uppercase fw-bold text-muted">Precio estimado</small>
-                        <h3 class="fw-bold text-primary mb-0" id="precio-estimado">$ 0.00</h3>
+                    <div class="alert alert-light border text-center py-2 mb-3">
+                        <small class="text-muted d-block">PRECIO ESTIMADO</small>
+                        <h4 class="fw-bold text-primary mb-0" id="precio-estimado">$ 0</h4>
                     </div>
 
-                    <button id="btn-pedir" onclick="validarYEnviar()" class="btn btn-whatsapp text-uppercase" disabled>
-                        <i class="bi bi-whatsapp"></i> Pedir Taxi Ahora
-                    </button>
+                    <button id="btn-pedir" onclick="validarYEnviar()" class="btn-whatsapp" disabled>PEDIR TAXI</button>
                 </div>
             </div>
         </div>
@@ -58,144 +56,78 @@
 
     <div class="modal fade" id="modalExito" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
                 <div class="modal-body p-4 text-center">
                     <i class="bi bi-check-circle-fill text-success display-2"></i>
                     <h3 class="fw-bold mt-3">¡Pedido Confirmado!</h3>
-                    <p class="text-muted">Tu taxi está en camino.</p>
-                    <h2 class="text-primary fw-bold">7 min</h2>
-                    <hr>
-                    <button onclick="compartirViaje()" class="btn btn-outline-success w-100 py-2 rounded-pill mb-2">
-                        <i class="bi bi-share-fill"></i> Compartir recorrido
-                    </button>
+                    <button class="btn btn-dark w-100 py-3 rounded-pill fw-bold mb-2" data-bs-dismiss="modal">VOLVER AL MAPA</button>
+                    <button onclick="enviarConsulta('¿Mi taxi demora?')" class="btn btn-outline-secondary w-100 py-3 rounded-pill fw-bold mb-2">¿MI TAXI DEMORA?</button>
+                    <button onclick="activarSOS()" class="btn btn-danger w-100 py-3 rounded-pill fw-bold"><i class="bi bi-shield-fill-exclamation"></i> COMPARTIR VIAJE (SOS)</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCuFEjycWBUxeJ32jWckekiIutLgcul21Q&callback=initMap&loading=async"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI&libraries=places&callback=initMap" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
-        let map, markerOrigen, markerDestino, geocoder;
-        let userAddress = "Ubicación detectando...";
+        let map, markerOrigen, markerDestino, service, geocoder;
+        let userLatLng = null, userAddress = "Ubicación detectada";
         const miTelefono = "5492613871088";
 
         function initMap() {
-            console.log("Mapa iniciado correctamente");
-    const mza = { lat: -32.9815, lng: -68.7890 };
-    map = new google.maps.Map(document.getElementById("map"), { 
-        zoom: 14, 
-        center: mza, 
-        disableDefaultUI: true 
-    });
+            map = new google.maps.Map(document.getElementById("map"), { zoom: 14, center: {lat: -32.8895, lng: -68.8458} });
+            service = new google.maps.DistanceMatrixService();
+            geocoder = new google.maps.Geocoder();
+            markerOrigen = new google.maps.Marker({ map: map });
+            markerDestino = new google.maps.Marker({ map: map, visible: false });
 
-    // Pin de Origen (el que ya tienes)
-    markerOrigen = new google.maps.Marker({ 
-        map: map, 
-        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' // Color azul
-    });
-
-    // Pin de Destino (nuevo)
-    markerDestino = new google.maps.Marker({ 
-        map: map, 
-        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png', // Color rojo
-        visible: false // Oculto inicialmente
-    });
-
-    geocoder = new google.maps.Geocoder();
-    configurarAutocomplete();
-    obtenerUbicacion();
-}
-
-function configurarAutocomplete() {
-    const input = document.getElementById('destino');
-    const autocomplete = new google.maps.places.Autocomplete(input, { 
-        componentRestrictions: { country: "ar" } 
-    });
-    
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.geometry) {
-            const loc = place.geometry.location;
-            
-            // Actualizar pin destino
-            markerDestino.setPosition(loc);
-            markerDestino.setVisible(true);
-            
-            // Centrar el mapa para ver ambos pines
-            const bounds = new google.maps.LatLngBounds();
-            bounds.extend(markerOrigen.getPosition());
-            bounds.extend(loc);
-            map.fitBounds(bounds);
-            
-            calcularPrecio();
+            new google.maps.places.Autocomplete(document.getElementById('destino')).addListener('place_changed', calcularRutaReal);
+            obtenerUbicacion();
         }
-    });
-}
 
         function obtenerUbicacion() {
-            navigator.geolocation.getCurrentPosition(pos => {
-                const latLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                marker.setPosition(latLng);
-                map.setCenter(latLng);
-                geocoder.geocode({ location: latLng }, (results) => {
-                    if (results[0]) {
-                        userAddress = results[0].formatted_address;
-                        document.getElementById('ubicacion-status').innerText = "Ubicación lista";
-                    }
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    userLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    markerOrigen.setPosition(userLatLng);
+                    map.setCenter(userLatLng);
+                    geocoder.geocode({location: userLatLng}, r => { if(r[0]) userAddress = r[0].formatted_address; document.getElementById('ubicacion-status').innerText = "Ubicación lista ✅"; });
                 });
+            }
+        }
+
+        function calcularRutaReal() {
+            const destino = document.getElementById('destino').value;
+            service.getDistanceMatrix({
+                origins: [userLatLng],
+                destinations: [destino],
+                travelMode: 'DRIVING'
+            }, (res, status) => {
+                if (status === 'OK' && res.rows[0].elements[0].status === 'OK') {
+                    const km = res.rows[0].elements[0].distance.value / 1000;
+                    const precio = 1200 + (km * 600);
+                    document.getElementById('precio-estimado').innerText = `$ ${Math.round(precio)}`;
+                    document.getElementById('btn-pedir').disabled = false;
+                }
             });
         }
 
-       // Mejora en cálculo de precio: más robusto
-    function calcularPrecio() {
-        const destino = document.getElementById('destino').value;
-        const btn = document.getElementById('btn-pedir');
-        
-        if (destino.length > 5) {
-            // Ejemplo de cálculo dinámico (puedes ajustar el multiplicador)
-            const precioBase = 1200;
-            const precio = precioBase + 3000; 
-            document.getElementById('precio-estimado').innerText = `$ ${precio.toLocaleString('es-AR')}`;
-            btn.disabled = false;
-        } else {
-            btn.disabled = true;
-        }
-    }
-
         function validarYEnviar() {
-            if (!document.getElementById('user-name').value) {
-    alert("Por favor, ingresá tu nombre.");
-    return;
-}
             const nombre = document.getElementById('user-name').value;
-            const destino = document.getElementById('destino').value;
-            const precio = document.getElementById('precio-estimado').innerText;
-            const pago = document.getElementById('forma-pago').value;
-
-            const texto = `🚕 *NUEVO PEDIDO TAXIGO*\n👤 ${nombre}\n📍 ${userAddress}\n🏁 ${destino}\n💰 ${precio}\n💳 ${pago}`;
+            if(!nombre) return alert("Ingresá tu nombre");
+            const texto = `🚕 *PEDIDO TAXIGO*\n👤 ${nombre}\n📍 ${userAddress}\n🏁 ${document.getElementById('destino').value}\n💰 ${document.getElementById('precio-estimado').innerText}\n💳 ${document.getElementById('forma-pago').value}`;
             window.open(`https://wa.me/${miTelefono}?text=${encodeURIComponent(texto)}`, '_blank');
-
-            const miModal = new bootstrap.Modal(document.getElementById('modalExito'));
-            miModal.show();
+            new bootstrap.Modal(document.getElementById('modalExito')).show();
         }
 
-        function compartirViaje() {
-            if (navigator.share) {
-                navigator.share({ title: 'Mi Viaje en TaxiGO', text: 'Voy en camino con TaxiGO', url: window.location.href });
-            }
+        function enviarConsulta(msg) { window.open(`https://wa.me/${miTelefono}?text=${encodeURIComponent(msg)}`, '_blank'); }
+
+        function activarSOS() {
+            const msg = `🚨 *SOS* - Estoy en un TaxiGO hacia ${document.getElementById('destino').value}. Seguí mi recorrido.`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         }
     </script>
-    <script>
-    // Prueba mínima
-    window.initMap = function() {
-        console.log("Mapa funcionando!");
-        const map = new google.maps.Map(document.getElementById("map"), {
-            center: {lat: -32.88, lng: -68.84},
-            zoom: 12
-        });
-    };
-</script>
 </body>
 </html>
