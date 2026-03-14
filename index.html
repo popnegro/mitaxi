@@ -67,7 +67,6 @@
             </div>
         </div>
     </div>
-
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI&libraries=places&callback=initMap" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -85,34 +84,76 @@
 
             new google.maps.places.Autocomplete(document.getElementById('destino')).addListener('place_changed', calcularRutaReal);
             obtenerUbicacion();
+
+            // Agrega esto al final de tu función initMap
+const inputDestino = document.getElementById('destino');
+
+// Evento cuando se selecciona del buscador
+autocomplete.addListener('place_changed', calcularRutaReal);
+
+// Evento adicional: habilitar si escribe algo manualmente
+inputDestino.addEventListener('input', () => {
+    if (inputDestino.value.length > 5) {
+        document.getElementById('btn-pedir').disabled = false;
+    } else {
+        document.getElementById('btn-pedir').disabled = true;
+    }
+});
         }
+
+        
 
         function obtenerUbicacion() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    userLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    markerOrigen.setPosition(userLatLng);
-                    map.setCenter(userLatLng);
-                    geocoder.geocode({location: userLatLng}, r => { if(r[0]) userAddress = r[0].formatted_address; document.getElementById('ubicacion-status').innerText = "Ubicación lista ✅"; });
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                userLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                markerOrigen.setPosition(userLatLng);
+                map.setCenter(userLatLng);
+                geocoder.geocode({location: userLatLng}, r => { 
+                    if(r[0]) userAddress = r[0].formatted_address; 
+                    document.getElementById('ubicacion-status').innerText = "Ubicación lista ✅"; 
                 });
+            },
+            (error) => {
+                // FALLBACK: Si rechaza el permiso, centramos en Mendoza centro
+                userLatLng = { lat: -32.8895, lng: -68.8458 };
+                map.setCenter(userLatLng);
+                userAddress = "Mendoza Centro (Seleccioná origen)";
+                document.getElementById('ubicacion-status').innerText = "GPS desactivado - Origen manual";
+                // Activamos el botón si el usuario ya escribió destino
+                document.getElementById('btn-pedir').disabled = false;
             }
-        }
+        );
+    }
+}
 
         function calcularRutaReal() {
-            const destino = document.getElementById('destino').value;
-            service.getDistanceMatrix({
-                origins: [userLatLng],
-                destinations: [destino],
-                travelMode: 'DRIVING'
-            }, (res, status) => {
-                if (status === 'OK' && res.rows[0].elements[0].status === 'OK') {
-                    const km = res.rows[0].elements[0].distance.value / 1000;
-                    const precio = 1200 + (km * 600);
-                    document.getElementById('precio-estimado').innerText = `$ ${Math.round(precio)}`;
-                    document.getElementById('btn-pedir').disabled = false;
-                }
-            });
+    const destino = document.getElementById('destino').value;
+    
+    // Si no tenemos ubicación, usamos un valor por defecto o alertamos
+    if (!userLatLng) {
+        alert("Por favor, esperá a que detectemos tu ubicación o elegí un punto de origen.");
+        return;
+    }
+
+    service.getDistanceMatrix({
+        origins: [userLatLng],
+        destinations: [destino],
+        travelMode: 'DRIVING'
+    }, (res, status) => {
+        if (status === 'OK' && res.rows[0].elements[0].status === 'OK') {
+            const km = res.rows[0].elements[0].distance.value / 1000;
+            const precio = 1200 + (km * 600);
+            document.getElementById('precio-estimado').innerText = `$ ${Math.round(precio).toLocaleString('es-AR')}`;
+            document.getElementById('btn-pedir').disabled = false;
+        } else {
+            // Si el destino no es válido, deshabilitamos el botón
+            document.getElementById('btn-pedir').disabled = true;
+            alert("No pudimos calcular la ruta. Revisá la dirección.");
         }
+    });
+}
 
         function validarYEnviar() {
             const nombre = document.getElementById('user-name').value;
