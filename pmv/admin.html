@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Central Operativa - Taxis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    
+    <header class="bg-gray-900 text-white p-4 flex justify-between items-center shadow-md">
+        <h1 class="text-xl font-bold">📡 Central Las Heras</h1>
+        <button id="btn-turno" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded font-bold text-sm">
+            ▶️ Iniciar Turno (Activa Sonido)
+        </button>
+    </header>
+
+    <main class="p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Viajes Pendientes</h2>
+        <div id="lista-pedidos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+    </main>
+
+    <script type="module">
+        import { db, auth } from './firebase-config.js';
+        import { collection, onSnapshot, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+
+        // Protección de ruta
+        onAuthStateChanged(auth, user => { if(!user) window.location.href = "login.html"; });
+
+        // Sistema de Sonido (Requiere que el usuario haga clic en Iniciar Turno primero)
+        const audioAlerta = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
+        let sonidoActivado = false;
+
+        document.getElementById('btn-turno').onclick = () => {
+            sonidoActivado = true;
+            audioAlerta.play().catch(()=>{}); // Reproducir en silencio para desbloquear el navegador
+            document.getElementById('btn-turno').classList.replace('bg-blue-600', 'bg-green-600');
+            document.getElementById('btn-turno').innerText = "✅ Turno Activo (Sonido ON)";
+        };
+
+        // Escuchar la base de datos en tiempo real
+        const q = query(collection(db, "pedidos"), where("estado", "==", "pendiente"));
+        
+        onSnapshot(q, (snapshot) => {
+            const lista = document.getElementById('lista-pedidos');
+            lista.innerHTML = ""; // Limpiar lista
+            
+            snapshot.docChanges().forEach((change) => {
+                // Si hay un viaje NUEVO y el sonido está activado, pitar
+                if (change.type === "added" && sonidoActivado) {
+                    audioAlerta.play();
+                }
+            });
+
+            // Dibujar las tarjetas
+            snapshot.forEach(documento => {
+                const d = documento.data();
+                const id = documento.id;
+                
+                // Limpiar el teléfono para WhatsApp (quitar espacios/guiones)
+                const telLimpio = d.telefono.replace(/\D/g,'');
+                const msgWa = encodeURIComponent(`Hola ${d.nombre}, somos Taxi Las Heras. Tu móvil ya va en camino hacia ${d.origen}.`);
+
+                lista.innerHTML += `
+                <div class="bg-white p-5 rounded-xl shadow-md border-l-8 border-yellow-400 relative">
+                    <span class="absolute top-2 right-2 text-xs text-gray-400">Hace instantes</span>
+                    <h3 class="text-xl font-bold text-gray-800 mb-1">${d.nombre}</h3>
+                    <p class="text-sm text-gray-600 mb-1">📍 <b>Origen:</b> ${d.origen}</p>
+                    <p class="text-sm text-gray-600 mb-1">🏁 <b>Destino:</b> ${d.destino || 'No especificado'}</p>
+                    <p class="text-sm text-gray-600 mb-4">📝 <b>Notas:</b> ${d.notas || 'Ninguna'}</p>
+                    
+                    <div class="flex flex-col gap-2">
+                        <a href="https://wa.me/549${telLimpio}?text=${msgWa}" target="_blank" class="w-full text-center bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-bold text-sm">
+                            💬 Avisar por WhatsApp
+                        </a>
+                        <button onclick="completarViaje('${id}')" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg font-bold text-sm">
+                            ✔️ Marcar como Asignado
+                        </button>
+                    </div>
+                </div>`;
+            });
+        });
+
+        // Función global para quitar el viaje de la pantalla
+        window.completarViaje = async (id) => {
+            await updateDoc(doc(db, "pedidos", id), { estado: "asignado" });
+        };
+    </script>
+</body>
+</html>
