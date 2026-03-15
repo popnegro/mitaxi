@@ -1,0 +1,90 @@
+:root {
+    --yellow: #ffc107;
+    --dark: #212529;
+    --danger: #dc3545;
+    --success: #25d366;
+}
+
+body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    background: #f8f9fa;
+    color: var(--dark);
+    padding-top: 60px;
+}
+
+.navbar {
+    background: var(--dark);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1030;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.navbar-brand {
+    color: var(--yellow);
+    font-weight: bold;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    padding-left: 15px;
+}
+
+.main-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    border: none;
+}
+
+#map {
+    height: 200px;
+    background: #eee;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+}
+
+.btn-whatsapp {
+    background: var(--success);
+    color: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    font-weight: bold;
+    border: none;
+    width: 100%;
+    transition: 0.3s;
+}
+
+.btn-whatsapp:active {
+    transform: scale(0.98);
+}
+
+.bi-spin {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.price-box {
+    background: #fff9e6;
+    border: 1px dashed var(--yellow);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+#audio-status {
+    font-size: 0.85rem;
+}
