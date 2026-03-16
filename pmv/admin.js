@@ -1,21 +1,14 @@
+// --- SEGURIDAD Y SESIÓN ---
+const CLAVE_MAESTRA = "MiTaxi2026";
+
 function verificarLogin() {
-    if (document.getElementById('admin-pass').value === "MiTaxi2026") {
+    const pass = document.getElementById('admin-pass').value;
+    if (pass === CLAVE_MAESTRA) {
         sessionStorage.setItem('adminAutenticado', 'true');
-        location.reload();
-    } else { alert("Clave incorrecta"); }
-}
-
-function cargarDatosAdmin() {
-    const pedidos = JSON.parse(localStorage.getItem('todosLosPedidos') || '[]');
-    document.getElementById('lista-pedidos').innerHTML = pedidos.map(p => `
-        <tr><td>${p.nombre}</td>
-        <td><button onclick="enviarWhatsApp('${p.telefono}', '${p.destino}')">WhatsApp</button>
-        <button onclick="completarPedido('${p.id}')">Finalizar</button></td></tr>`).join('');
-}
-
-function enviarWhatsApp(tel, destino) {
-    const msg = document.getElementById('selector-mensajes').value;
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg + ' Destino: ' + destino)}`);
+        renderizarInterfazAdmin();
+    } else {
+        alert("Contraseña incorrecta.");
+    }
 }
 
 function cerrarSesion() {
@@ -23,10 +16,81 @@ function cerrarSesion() {
     location.reload();
 }
 
-window.onload = () => {
-    if (sessionStorage.getItem('adminAutenticado')) {
-        document.getElementById('login-container').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
+// --- GESTIÓN DE PEDIDOS ---
+function cargarDatosAdmin() {
+    const pedidos = JSON.parse(localStorage.getItem('todosLosPedidos') || '[]');
+    const tabla = document.getElementById('lista-pedidos');
+    
+    if (!tabla) return; // Seguridad por si el elemento no existe aún
+    
+    tabla.innerHTML = pedidos.map(p => `
+        <tr>
+            <td>
+                <strong>${p.nombre}</strong><br>
+                <small>📍 ${p.destino}</small><br>
+                <small>💳 ${p.pago}</small>
+            </td>
+            <td>
+                <button onclick="contactarPasajero('${p.telefono}', '${p.destino}')" style="background:#25D366; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">
+                    WhatsApp
+                </button>
+                <button onclick="finalizarViaje('${p.id}')" class="danger" style="margin-top:5px;">
+                    Finalizar
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function contactarPasajero(tel, destino) {
+    const mensajeBase = document.getElementById('selector-mensajes').value;
+    const url = `https://wa.me/${tel}?text=${encodeURIComponent(mensajeBase + " con destino a: " + destino)}`;
+    window.open(url, '_blank');
+}
+
+function finalizarViaje(id) {
+    let pedidos = JSON.parse(localStorage.getItem('todosLosPedidos') || '[]');
+    let historial = JSON.parse(localStorage.getItem('historialViajes') || '[]');
+
+    const index = pedidos.findIndex(p => p.id === id);
+    if (index !== -1) {
+        const viajeCompletado = pedidos.splice(index, 1)[0];
+        viajeCompletado.fechaFin = new Date().toLocaleString();
+        historial.push(viajeCompletado);
+
+        localStorage.setItem('todosLosPedidos', JSON.stringify(pedidos));
+        localStorage.setItem('historialViajes', JSON.stringify(historial));
         cargarDatosAdmin();
+    }
+}
+
+// --- EXPORTACIÓN ---
+function exportarCSV() {
+    const historial = JSON.parse(localStorage.getItem('historialViajes') || '[]');
+    if (historial.length === 0) return alert("No hay datos para exportar.");
+
+    let csv = "Fecha,Cliente,Destino,Pago\n";
+    historial.forEach(v => {
+        csv += `${v.fechaFin},${v.nombre},${v.destino},${v.pago}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'historial_mitaxi.csv');
+    a.click();
+}
+
+// --- INICIALIZACIÓN ---
+function renderizarInterfazAdmin() {
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+    cargarDatosAdmin();
+}
+
+window.onload = () => {
+    if (sessionStorage.getItem('adminAutenticado') === 'true') {
+        renderizarInterfazAdmin();
     }
 };
