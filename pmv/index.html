@@ -2,22 +2,26 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>TaxiGO Mendoza - Pedir Taxi</title>
-    <link rel="stylesheet" href="main.css">
+    <title>TaxiGO - Pedir Taxi</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
     <div class="container">
         <h1>Pedir Taxi</h1>
         <form id="form-pedido">
-            <input type="text" name="nombre" placeholder="Tu Nombre" required>
-            <input type="text" name="destino" placeholder="¿A dónde vas?" required>
+            <input type="text" id="nombre" name="nombre" placeholder="Tu Nombre" required>
+            <input type="text" id="destino" name="destino" placeholder="¿A dónde vas?" required>
             <input type="tel" id="telefono" name="telefono" placeholder="WhatsApp (549...)" pattern="[0-9]{10,}" required>
-            <select name="pago"><option>Efectivo</option><option>Mercado Pago</option></select>
+            <select id="pago" name="pago">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Mercado Pago">Mercado Pago</option>
+            </select>
             <button type="button" onclick="iniciarPedido()">PEDIR TAXI</button>
         </form>
         <div id="map"></div>
     </div>
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="main.js"></script>
 </body>
