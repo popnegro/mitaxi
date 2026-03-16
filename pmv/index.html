@@ -2,122 +2,23 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taxi Las Heras | Pedir Móvil</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <style>
-        .btn-taxi { background-color: #f6c000; color: #000; border: none; font-weight: bold; }
-        .btn-taxi:hover { background-color: #e0af00; }
-        #map {
-    height: 175px; /* Altura fija */
-    width: 100%;
-    background: #eee;
-    border-radius: 12px;
-}
-    </style>
+    <title>TaxiGO Mendoza - Pedir Taxi</title>
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
-<body class="bg-gray-100 flex flex-col min-h-screen">
-
-    <nav class="bg-gray-900 text-white p-4 text-center shadow-lg">
-        <h1 class="font-bold text-xl tracking-wide">🚕 Taxi Las Heras</h1>
-    </nav>
-
-    <main class="container py-6 max-w-md mx-auto">
-        <div class="card shadow-lg border-0 rounded-4 p-4 bg-white">
-            
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <small class="fw-bold text-muted" id="status-text"><i class="bi bi-geo-alt-fill text-danger"></i> Localizando...</small>
-            </div>
-            <div id="map" class="shadow-sm mb-4 rounded-4 border bg-light" style="height: 220px; width: 100%;"></div>
-
-            <div class="d-grid gap-3">
-                <div class="form-floating">
-                    <input type="text" id="nombre" class="form-control rounded-3" placeholder="Nombre">
-                    <label>Tu Nombre</label>
-                </div>
-                <div class="form-floating">
-                    <input type="tel" id="telefono" class="form-control rounded-3" placeholder="Teléfono">
-                    <label>Tu WhatsApp (Para avisarte)</label>
-                </div>
-                <div class="form-floating">
-                    <input type="text" id="destino" class="form-control rounded-3" placeholder="Destino">
-                    <label>¿A dónde vas?</label>
-                </div>
-                
-                <div class="form-floating">
-                    <input type="text" id="notas" class="form-control rounded-3" placeholder="Notas">
-                    <label>Notas (Ej: Casa portón verde)</label>
-                </div>
-
-                <button id="btn-pedir" class="btn btn-taxi text-uppercase py-3 rounded-pill shadow-sm animate__animated animate__pulse animate__infinite">
-                    <i class="bi bi-taxi-front-fill me-2"></i> Solicitar Taxi
-                </button>
-            </div>
-            
-            <div id="mensaje-exito" class="alert alert-success mt-3 d-none text-center">
-                <strong>¡Móvil solicitado!</strong><br>Te avisaremos por WhatsApp en breve.
-            </div>
-        </div>
-    </main>
-
-    <script>
-        let map, marker, userAddress = "Detectando ubicación...";
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), { zoom: 16, center: { lat: -32.85, lng: -68.85 }, disableDefaultUI: true });
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
-                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    map.setCenter(loc);
-                    marker = new google.maps.Marker({ position: loc, map: map, draggable: true });
-                    document.getElementById('status-text').innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> Ubicación fijada (puedes mover el pin)';
-                    
-                    // Actualizar coordenadas si mueve el pin
-                    marker.addListener('dragend', () => {
-                        const newPos = marker.getPosition();
-                        userAddress = `GPS: ${newPos.lat().toFixed(5)}, ${newPos.lng().toFixed(5)}`;
-                    });
-                    
-                    userAddress = `GPS: ${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
-                }, () => { document.getElementById('status-text').innerText = "Error GPS. Mueve el mapa."; });
-            }
-        }
-    </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCuFEjycWBUxeJ32jWckekiIutLgcul21Q&callback=initMap" async defer></script>
-
-    <script type="module">
-        import { db } from './firebase-config.js';
-        import { collection, addDoc } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
-
-        document.getElementById('btn-pedir').onclick = async () => {
-            const btn = document.getElementById('btn-pedir');
-            const data = {
-                nombre: document.getElementById('nombre').value,
-                telefono: document.getElementById('telefono').value,
-                destino: document.getElementById('destino').value,
-                notas: document.getElementById('notas').value,
-                origen: userAddress,
-                estado: "pendiente",
-                fecha: new Date()
-            };
-
-            if(!data.nombre || !data.telefono) return alert("Nombre y Teléfono son obligatorios.");
-
-            btn.disabled = true;
-            btn.innerText = "Enviando...";
-
-            try {
-                await addDoc(collection(db, "pedidos"), data);
-                document.getElementById('mensaje-exito').classList.remove('d-none');
-                btn.innerText = "Viaje en proceso";
-            } catch (e) {
-                alert("Error: " + e.message);
-                btn.disabled = false;
-                btn.innerText = "Solicitar Taxi";
-            }
-        };
-    </script>
+<body>
+    <div class="container">
+        <h1>Pedir Taxi</h1>
+        <form id="form-pedido">
+            <input type="text" name="nombre" placeholder="Tu Nombre" required>
+            <input type="text" name="destino" placeholder="¿A dónde vas?" required>
+            <input type="tel" id="telefono" name="telefono" placeholder="WhatsApp (549...)" pattern="[0-9]{10,}" required>
+            <select name="pago"><option>Efectivo</option><option>Mercado Pago</option></select>
+            <button type="button" onclick="iniciarPedido()">PEDIR TAXI</button>
+        </form>
+        <div id="map"></div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>

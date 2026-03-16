@@ -1,90 +1,73 @@
-:root {
-    --yellow: #ffc107;
-    --dark: #212529;
-    --danger: #dc3545;
-    --success: #25d366;
-}
-
+/* --- Estilos Generales --- */
 body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
     margin: 0;
-    font-family: 'Roboto', sans-serif;
-    background: #f8f9fa;
-    color: var(--dark);
-    padding-top: 60px;
-}
-
-.navbar {
-    background: var(--dark);
-    height: 56px;
-    display: flex;
-    align-items: center;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    z-index: 1030;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.navbar-brand {
-    color: var(--yellow);
-    font-weight: bold;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    padding-left: 15px;
-}
-
-.main-card {
-    background: #fff;
-    border-radius: 20px;
     padding: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    border: none;
+    display: flex;
+    justify-content: center;
 }
 
-#map {
-    height: 200px;
-    background: #eee;
-    border-radius: 15px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-}
-
-.btn-whatsapp {
-    background: var(--success);
-    color: #fff;
-    padding: 15px;
+.container, .admin-container {
+    background: #ffffff;
+    padding: 25px;
     border-radius: 12px;
-    text-decoration: none;
-    display: block;
-    text-align: center;
-    font-weight: bold;
-    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     width: 100%;
-    transition: 0.3s;
+    max-width: 500px;
 }
 
-.btn-whatsapp:active {
-    transform: scale(0.98);
+h1 { color: #2c3e50; text-align: center; }
+
+/* --- Formularios e Inputs --- */
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box; /* Importante para que el padding no rompa el diseño */
 }
 
-.bi-spin {
-    display: inline-block;
-    animation: spin 1s linear infinite;
+button {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+button:hover { background-color: #219150; }
+
+/* --- Mapa --- */
+#map {
+    height: 250px;
+    width: 100%;
+    margin-top: 20px;
+    border-radius: 8px;
+    background: #e0e0e0;
 }
 
-.price-box {
-    background: #fff9e6;
-    border: 1px dashed var(--yellow);
-    border-radius: 12px;
-    padding: 15px;
+/* --- Tabla de Administración --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
-#audio-status {
-    font-size: 0.85rem;
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+/* --- Estilos para Botones Admin --- */
+button.danger { background-color: #e74c3c; }
+button.danger:hover { background-color: #c0392b; }
+
+/* --- Login --- */
+#login-container {
+    text-align: center;
+    padding: 40px;
 }
