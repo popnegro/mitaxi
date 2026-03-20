@@ -5,313 +5,463 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MiTaxi Mendoza | Pedir Taxi y Remises</title>
-    
+
     <link rel="preconnect" href="https://maps.googleapis.com">
-<link rel="preconnect" href="https://maps.gstatic.com">
-<link rel="dns-prefetch" href="https://maps.googleapis.com">
+    <link rel="preconnect" href="https://maps.gstatic.com">
+    <link rel="dns-prefetch" href="https://maps.googleapis.com">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
+
     <style>
-        :root { --taxi-yellow: #ffc107; --whatsapp-green: #25d366; --dark-bg: #212529; }
-        body { background: #f4f7f6; font-family: 'Segoe UI', Roboto, sans-serif; overflow-x: hidden; }
-        
-        .main-card { 
-            background: #fff; border-radius: 28px; padding: 24px; 
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1); border: none; margin-top: 10px;
+        :root {
+            --taxi-yellow: #ffc107;
+            --whatsapp-green: #25d366;
+            --dark-bg: #212529;
         }
 
-        .map-wrapper { position: relative; margin-bottom: 20px; border-radius: 20px; overflow: hidden; border: 1px solid #eee; height: 175px; }
-        #map { height: 100%; background: #e9ecef; }
+        body {
+            background: #000;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* 1. Eliminamos el padding superior y lateral de la tarjeta solo en la zona del mapa */
+        .main-card {
+            padding: 0 !important;
+            /* Quitamos el padding general */
+            overflow: hidden;
+            /* Asegura que el mapa respete las esquinas redondeadas de la card */
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        /* 2. El contenedor del mapa ahora toca los bordes */
+        .map-wrapper {
+            position: relative;
+            margin-bottom: 0;
+            /* Eliminamos el margen inferior para que pegue con los inputs */
+            height: 180px;
+            width: 100%;
+            border-radius: 0;
+            /* El redondeo lo da el padre (.main-card) */
+            border: none;
+            border-bottom: 1px solid #eee;
+            /* Opcional: una línea sutil para separar del formulario */
+        }
+
+        /* 3. Añadimos padding solo al cuerpo del formulario para que los inputs no toquen los bordes */
+        .form-container-inner {
+            padding: 20px 24px 24px 24px;
+        }
+
+        #map {
+            height: 100%;
+            background: #e9ecef;
+        }
 
         .map-loader {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #f8f9fa; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; z-index: 5; transition: opacity 0.6s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: opacity 0.6s ease;
         }
-        .map-loader.fade-out { opacity: 0; pointer-events: none; }
 
-        .form-label { font-size: 0.75rem; letter-spacing: 1px; color: #6c757d; margin-bottom: 5px; }
-        .form-control-lg { border-radius: 14px; font-size: 0.95rem; border: 1px solid #e0e0e0; padding: 12px 15px; background: #f9f9f9; }
-        .input-group-text { border-radius: 14px 0 0 14px; background: #f9f9f9; border: 1px solid #e0e0e0; border-right: none; }
-
-        .price-badge { background: #fffdf5; border: 2px dashed var(--taxi-yellow); border-radius: 16px; padding: 15px; margin: 20px 0; }
-
-        .btn-whatsapp { 
-            background: var(--whatsapp-green); color: #fff; padding: 18px; 
-            border-radius: 18px; border: none; width: 100%; font-weight: 800; 
-            transition: all 0.3s ease; display: block; text-align: center; text-decoration: none;
+        .map-loader.fade-out {
+            opacity: 0;
+            pointer-events: none;
         }
-        .btn-whatsapp:hover { background: #1eb956; transform: translateY(-3px); }
-        .btn-whatsapp:disabled { background: #ccc; transform: none; }
 
-        .custom-toast { border-radius: 18px !important; background: rgba(33, 37, 41, 0.9) !important; color: white; border: 1px solid var(--taxi-yellow) !important; }
+        .form-label {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .form-control-lg {
+            border-radius: 8px;
+            font-size: 0.95rem;
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            background: #f9f9f9;
+        }
+
+        .form-control-lg:focus {
+            border-color: var(--taxi-yellow);
+            box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.2);
+        }
+
+        .input-group-text {
+            border-radius: 8px 0 0 8px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-right: none;
+        }
+
+        .price-badge {
+            background: #fffdf5;
+            border: 2px dashed var(--taxi-yellow);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .btn-whatsapp {
+            background: var(--whatsapp-green);
+            color: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            border: none;
+            width: 100%;
+            font-weight: 800;
+            transition: all 0.3s ease;
+            display: block;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-whatsapp:hover:not(:disabled) {
+            background: #1eb956;
+            transform: translateY(-3px);
+        }
+
+        .btn-whatsapp:disabled {
+            background: #ccc;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+
+        /* Contenedor del Toast como Footer */
+        .toast-container.footer-fixed {
+            bottom: 0 !important;
+            top: auto !important;
+            left: 0 !important;
+            right: 0 !important;
+            transform: none !important;
+            width: 100% !important;
+            padding: 0;
+            margin: 0;
+            z-index: 2000;
+        }
+
+        .custom-toast.footer-style {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0;
+            border: none !important;
+            /* Línea de acento superior */
+            border-radius: 8px 8px 0 0 !important;
+            /* Redondeado solo arriba */
+            background: black;
+            backdrop-filter: blur(10px);
+            /* Efecto de desenfoque premium */
+            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .custom-toast.footer-style .toast-body {
+            padding: 20px;
+            color: white;
+        }
+
+        /* Animación de entrada desde el fondo */
+        .toast.showing {
+            animation: slideUp 0.4s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        #night-label {
+            font-size: 0.7rem;
+            color: #6610f2;
+            display: none;
+        }
     </style>
 </head>
 
 <body>
-
-    <div class="toast-container position-fixed top-0 start-50 translate-middle-x mt-4">
-        <div id="liveToast" class="toast custom-toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-body small text-center">
-                <i class="bi bi-whatsapp text-success me-2"></i> <b>¡Atención!</b> Envía el pedido por WhatsApp para confirmar.
+    <div class="toast-container footer-fixed">
+        <div id="liveToast" class="toast custom-toast footer-style hide" role="alert" aria-live="assertive"
+            aria-atomic="true" data-bs-autohide="false">
+            <div class="toast-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-start">
+                        <div class="d-flex align-items-center mb-1">
+                            <div class="spinner-grow spinner-grow-sm text-warning me-2" role="status"></div>
+                            <span id="eta-text" class="fw-bold h5 mb-0">Buscando chofer...</span>
+                        </div>
+                        <p class="small mb-0 opacity-75">Confirmá en WhatsApp para asignar la unidad.</p>
+                    </div>
+                    <i class="bi bi-whatsapp h1 text-success mb-0"></i>
+                </div>
             </div>
         </div>
     </div>
-
     <main class="container py-3">
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
                 <div class="text-center mb-3">
-                    <h2 class="fw-bold text-dark">Mi<span class="text-warning">Taxi</span></h2>
+                    <h2 class="fw-bold text-light">Mi<span class="text-warning">Taxi</span></h2>
                 </div>
 
                 <div class="card main-card">
                     <div class="map-wrapper">
-                        <div id="map-spinner" class="map-loader">
-                            <div class="spinner-border text-warning" role="status"></div>
-                            <span class="small mt-2 fw-bold">Cargando Mapa...</span>
-                        </div>
+                        <div id="map-spinner" class="map-loader">...</div>
                         <div id="map"></div>
                     </div>
 
-                    <div class="mb-2">
-                        <label class="form-label fw-bold">ORIGEN</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-geo-alt-fill text-danger"></i></span>
-                            <input type="text" id="origen" class="form-control form-control-lg border-start-0 ps-0" placeholder="¿Dónde estás?">
+                    <div class="form-container-inner">
+                        <div class="mb-2">
+                            <label class="form-label fw-bold text-uppercase">Origen</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-geo-alt-fill text-danger"></i></span>
+                                <input type="text" id="origen" class="form-control form-control-lg border-start-0 ps-0"
+                                    placeholder="¿Dónde estás?">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-2">
-                        <label class="form-label fw-bold">DESTINO</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-flag-fill text-primary"></i></span>
-                            <input type="text" id="destino" class="form-control form-control-lg border-start-0 ps-0" placeholder="¿A dónde vas?">
+                        <div class="mb-2">
+                            <label class="form-label fw-bold text-uppercase">Destino</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-flag-fill text-primary"></i></span>
+                                <input type="text" id="destino" class="form-control form-control-lg border-start-0 ps-0"
+                                    placeholder="¿A dónde vas?">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-2">
-                        <label class="form-label fw-bold">TU NOMBRE</label>
-                        <input type="text" id="user-name" class="form-control form-control-lg" placeholder="Ej: Juan Pérez">
-                    </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-bold text-uppercase">Tu Nombre</label>
+                            <input type="text" id="user-name" class="form-control form-control-lg"
+                                placeholder="Ej: Juan Pérez">
+                        </div>
 
-                    <div class="price-badge text-center">
-                        <span class="small text-muted fw-bold d-block mb-1">TARIFA ESTIMADA</span>
-                        <h2 class="fw-bold text-dark mb-0" id="precio-estimado">$ 0</h2>
-                    </div>
+                        <div class="price-badge text-center">
+                            <div id="night-label" class="fw-bold mb-1"><i class="bi bi-moon-stars-fill"></i> TARIFA
+                                NOCTURNA ACTIVADA</div>
+                            <span class="small text-muted fw-bold d-block mb-1">TARIFA ESTIMADA</span>
+                            <h2 class="fw-bold text-dark mb-0" id="precio-estimado">$ 0</h2>
+                        </div>
 
-                    <button id="btn-pedir" onclick="validarYEnviarPedido()" class="btn-whatsapp" disabled>
-                       <i class="bi bi-whatsapp me-2"></i>PEDIR VIAJE AHORA
-                    </button>
+                        <button id="btn-pedir" onclick="validarYEnviarPedido()" class="btn-whatsapp" disabled>
+                            <i class="bi bi-whatsapp me-2"></i>PEDIR VIAJE AHORA
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
     </main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-   /**
- * CONFIGURACIÓN GLOBAL
- */
-const API_KEY = "AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI";
-const MI_TEL = "5492616706710";
-const MENDOZA_BOUNDS = { north: -31.95, south: -37.55, west: -70.50, east: -66.50 };
+    <script>
+        const API_KEY = "AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI";
+        const MI_TEL = "5492616706710";
+        const MENDOZA_BOUNDS = { north: -31.95, south: -37.55, west: -70.50, east: -66.50 };
 
-// Variables de instancia de Google Maps
-let map, markerOrigen, directionsService, directionsRenderer, geocoder;
-let mapsLoaded = false;
+        let map, markerOrigen, directionsService, directionsRenderer, geocoder;
+        let mapsLoaded = false;
 
-/**
- * 1. OPTIMIZACIÓN: CARGA BAJO DEMANDA (LAZY LOADING)
- * No descargamos la API de Google hasta que sea necesario.
- */
-function injectGoogleMaps() {
-    if (mapsLoaded) return;
-    mapsLoaded = true;
+        function injectGoogleMaps() {
+            if (mapsLoaded) return;
+            mapsLoaded = true;
 
-    const script = document.createElement('script');
-    script.id = 'google-maps-api';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=initMap`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-}
-
-// Disparadores de carga:
-// A. Al hacer foco en cualquier input del formulario
-['origen', 'destino', 'user-name'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('focus', injectGoogleMaps, { once: true });
-});
-
-// B. Al hacer scroll y que el contenedor del mapa sea visible
-const mapObserver = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting) {
-        injectGoogleMaps();
-        mapObserver.disconnect();
-    }
-}, { threshold: 0.1 });
-
-const mapTarget = document.getElementById('map');
-if(mapTarget) mapObserver.observe(mapTarget);
-
-// C. Carga de seguridad tras 4 segundos de inactividad total
-window.addEventListener('load', () => {
-    setTimeout(injectGoogleMaps, 4000);
-    // Recuperar nombre del usuario de la sesión anterior
-    const savedName = localStorage.getItem('taxigo_user_name');
-    if(savedName) document.getElementById('user-name').value = savedName;
-});
-
-
-/**
- * 2. LÓGICA DE GOOGLE MAPS (Callback)
- */
-function initMap() {
-    // Inicialización del mapa centrada en Mendoza
-    map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 14,
-        center: { lat: -32.8895, lng: -68.8458 },
-        disableDefaultUI: true,
-        gestureHandling: "greedy",
-        styles: [
-            { featureType: "poi", stylers: [{ visibility: "off" }] },
-            { featureType: "transit", stylers: [{ visibility: "off" }] }
-        ],
-        restriction: { latLngBounds: MENDOZA_BOUNDS, strictBounds: false }
-    });
-
-    // Servicios de Google
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({ 
-        map: map, 
-        polylineOptions: { strokeColor: "#ffc107", strokeWeight: 6 } 
-    });
-    geocoder = new google.maps.Geocoder();
-    markerOrigen = new google.maps.Marker({ map: map });
-
-    // Autocompletado de direcciones (Restringido a Mendoza, Argentina)
-    const acOptions = { 
-        bounds: MENDOZA_BOUNDS, 
-        componentRestrictions: { country: "ar" }, 
-        strictBounds: true 
-    };
-    
-    const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), acOptions);
-    const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), acOptions);
-
-    autoO.addListener('place_changed', () => {
-        const p = autoO.getPlace();
-        if (p.geometry) {
-            map.setCenter(p.geometry.location);
-            markerOrigen.setPosition(p.geometry.location);
-            calcularViaje();
+            const script = document.createElement('script');
+            script.id = 'google-maps-api';
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
         }
-    });
-    autoD.addListener('place_changed', calcularViaje);
 
-    // Intentar geolocalizar al usuario inmediatamente
-    obtenerUbicacionGPS();
-}
+        // Disparadores de carga
+        ['origen', 'destino', 'user-name'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('focus', injectGoogleMaps, { once: true });
+        });
 
-/**
- * 3. GEOLOCALIZACIÓN Y CÁLCULOS
- */
-function obtenerUbicacionGPS() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            markerOrigen.setPosition(coord);
-            map.setCenter(coord);
-            
-            geocoder.geocode({ location: coord }, (results, status) => {
-                const loader = document.getElementById('map-spinner');
-                if(loader) loader.classList.add('fade-out');
-                
-                if (status === "OK" && results[0]) {
-                    document.getElementById('origen').value = results[0].formatted_address;
+        const mapObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                injectGoogleMaps();
+                mapObserver.disconnect();
+            }
+        }, { threshold: 0.1 });
+
+        const mapTarget = document.getElementById('map');
+        if (mapTarget) mapObserver.observe(mapTarget);
+
+        window.addEventListener('load', () => {
+            setTimeout(injectGoogleMaps, 4000);
+            const savedName = localStorage.getItem('taxigo_user_name');
+            if (savedName) document.getElementById('user-name').value = savedName;
+        });
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 14,
+                center: { lat: -32.8895, lng: -68.8458 },
+                disableDefaultUI: true,
+                gestureHandling: "greedy",
+                restriction: { latLngBounds: MENDOZA_BOUNDS, strictBounds: false }
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                polylineOptions: { strokeColor: "#ffc107", strokeWeight: 6 }
+            });
+            geocoder = new google.maps.Geocoder();
+            markerOrigen = new google.maps.Marker({ map: map });
+
+            const acOptions = {
+                bounds: MENDOZA_BOUNDS,
+                componentRestrictions: { country: "ar" },
+                strictBounds: true
+            };
+
+            const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), acOptions);
+            const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), acOptions);
+
+            autoO.addListener('place_changed', () => {
+                const p = autoO.getPlace();
+                if (p.geometry) {
+                    map.setCenter(p.geometry.location);
+                    markerOrigen.setPosition(p.geometry.location);
+                    calcularViaje();
                 }
             });
-        }, () => {
-            const loader = document.getElementById('map-spinner');
-            if(loader) loader.classList.add('fade-out');
-        });
-    }
-}
+            autoD.addListener('place_changed', calcularViaje);
 
-function calcularViaje() {
-    const o = document.getElementById('origen').value;
-    const d = document.getElementById('destino').value;
-    
-    if (o && d) {
-        directionsService.route({
-            origin: o,
-            destination: d,
-            travelMode: 'DRIVING'
-        }, (res, status) => {
-            if (status === 'OK') {
-                directionsRenderer.setDirections(res);
-                markerOrigen.setVisible(false);
-                
-                // Cálculo de tarifa (Ajustado a Mendoza Marzo 2026)
-                const distanciaKm = res.routes[0].legs[0].distance.value / 1000;
-                const tarifaBase = 1400;
-                const precioPorKm = 750;
-                const total = Math.round(tarifaBase + (distanciaKm * precioPorKm));
-                
-                const precioEl = document.getElementById('precio-estimado');
-                precioEl.innerText = `$ ${total.toLocaleString('es-AR')}`;
-                
-                // Habilitar botón de pedido
-                document.getElementById('btn-pedir').disabled = false;
+            obtenerUbicacionGPS();
+        }
+
+        function obtenerUbicacionGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    markerOrigen.setPosition(coord);
+                    map.setCenter(coord);
+
+                    geocoder.geocode({ location: coord }, (results, status) => {
+                        document.getElementById('map-spinner').classList.add('fade-out');
+                        if (status === "OK" && results[0]) {
+                            document.getElementById('origen').value = results[0].formatted_address;
+                        }
+                    });
+                }, () => {
+                    document.getElementById('map-spinner').classList.add('fade-out');
+                });
+            } else {
+                document.getElementById('map-spinner').classList.add('fade-out');
             }
-        });
-    }
-}
+        }
 
-/**
- * 4. ENVÍO DE DATOS A WHATSAPP
- */
-function validarYEnviarPedido() {
-    const nombre = document.getElementById('user-name').value.trim();
-    const origen = document.getElementById('origen').value;
-    const destino = document.getElementById('destino').value;
-    const precio = document.getElementById('precio-estimado').innerText;
+        function calcularViaje() {
+            const o = document.getElementById('origen').value;
+            const d = document.getElementById('destino').value;
 
-    if (!nombre) {
-        alert("⚠️ Por favor, ingresá tu nombre para que el chofer pueda identificarte.");
-        return;
-    }
+            if (o && d) {
+                directionsService.route({
+                    origin: o,
+                    destination: d,
+                    travelMode: 'DRIVING'
+                }, (res, status) => {
+                    if (status === 'OK') {
+                        directionsRenderer.setDirections(res);
+                        markerOrigen.setVisible(false);
 
-    // Persistencia simple
-    localStorage.setItem('taxigo_user_name', nombre);
+                        const distanciaKm = res.routes[0].legs[0].distance.value / 1000;
 
-    // UI: Mostrar Toast (Si usas Bootstrap)
-    const toastEl = document.getElementById('liveToast');
-    if(toastEl) {
-        const toast = new bootstrap.Toast(toastEl);
-        toast.show();
-    }
+                        // --- Lógica de Tarifa Mendoza 2026 ---
+                        const hora = new Date().getHours();
+                        const esNocturno = (hora >= 22 || hora < 6);
 
-    // Generar link de navegación para el chofer
-    const mapaLink = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
-    
-    // Construir mensaje
-    const msg = `*NUEVO PEDIDO MITAXI*\n` +
+                        let tarifaBase = 1400;
+                        let precioPorKm = 750;
+
+                        if (esNocturno) {
+                            tarifaBase *= 1.2;
+                            precioPorKm *= 1.2;
+                            document.getElementById('night-label').style.display = 'block';
+                        } else {
+                            document.getElementById('night-label').style.display = 'none';
+                        }
+
+                        const total = Math.round(tarifaBase + (distanciaKm * precioPorKm));
+                        document.getElementById('precio-estimado').innerText = `$ ${total.toLocaleString('es-AR')}`;
+                        document.getElementById('btn-pedir').disabled = false;
+                    }
+                });
+            }
+        }
+
+        function validarYEnviarPedido() {
+            const nombre = document.getElementById('user-name').value.trim();
+            const origen = document.getElementById('origen').value;
+            const destino = document.getElementById('destino').value;
+            const precio = document.getElementById('precio-estimado').innerText;
+
+            if (!nombre) {
+                alert("⚠️ Por favor, ingresá tu nombre.");
+                document.getElementById('user-name').focus();
+                return;
+            }
+
+            // --- LÓGICA DE ETA (Simulada para Mendoza) ---
+            // En un MVP, simulamos que hay un móvil a 4-8 minutos de distancia.
+            const minutosETA = Math.floor(Math.random() * (12 - 4 + 1)) + 8;
+            document.getElementById('eta-text').innerText = `Móvil disponible a ${minutosETA} min.`;
+
+            // UI: Mostrar Toast
+            const toastEl = document.getElementById('liveToast');
+            const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+            toast.show();
+
+            // Feedback en el botón
+            const btn = document.getElementById('btn-pedir');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>ASIGNANDO MÓVIL...`;
+
+            // Link y Mensaje
+            const mapaLink = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
+
+            const msg = `*NUEVO PEDIDO MITAXI*\n` +
                 `👤 *Pasajero:* ${nombre}\n` +
-                `📍 *Desde:* ${origen}\n` +
-                `🏁 *Hacia:* ${destino}\n` +
-                `💰 *Precio Estimado:* ${precio}\n\n` +
-                `🗺️ *Ruta Sugerida:*\n${mapaLink}`;
+                `📍 *Origen:* ${origen}\n` +
+                `🏁 *Destino:* ${destino}\n` +
+                `💰 *Estimado:* ${precio}\n` +
+                `⏳ *ETA:* ${minutosETA} minutos\n\n` +
+                `🗺️ *Ruta:* ${mapaLink}`;
 
-    // Pequeño delay para que el usuario vea la notificación antes de saltar a WhatsApp
-    setTimeout(() => {
-        window.location.href = `https://wa.me/${MI_TEL}?text=${encodeURIComponent(msg)}`;
-    }, 1200);
-}
-</script>
+            // Redirección con pequeño delay para que lean el ETA en el toast
+            setTimeout(() => {
+                window.location.href = `https://wa.me/${MI_TEL}?text=${encodeURIComponent(msg)}`;
+
+                // Reset por si vuelve atrás
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-whatsapp me-2"></i>PEDIR VIAJE AHORA';
+                }, 2000);
+            }, 2500);
+        }
+    </script>
 </body>
+
 </html>
