@@ -13,7 +13,6 @@
         .main-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
         #map { height: 250px; background: #eee; border-radius: 15px; margin-bottom: 15px; }
         
-        /* Botón y Animaciones */
         .btn-whatsapp { background: var(--success); color: #fff; padding: 15px; border-radius: 12px; border: none; width: 100%; font-weight: bold; transition: all 0.3s ease; text-decoration: none; display: block; text-align: center; overflow: hidden; position: relative; }
         .btn-whatsapp:hover { background: #1eb956; color: white; transform: translateY(-2px); }
         .btn-whatsapp:disabled { background: #ccc; cursor: not-allowed; transform: none; }
@@ -32,11 +31,6 @@
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card main-card shadow-sm p-3">
-                    <small class="text-muted mb-2 d-block">
-                        <i class="bi bi-geo-alt-fill text-danger"></i> 
-                        <span id="ubicacion-status">Localizando...</span>
-                    </small>
-                    
                     <div id="map"></div>
 
                     <div class="mb-3">
@@ -52,14 +46,6 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Nombre y Apellido</label>
                         <input type="text" id="user-name" class="form-control form-control-lg" placeholder="Tu nombre">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small">Forma de Pago</label>
-                        <select id="forma-pago" class="form-select">
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Mercado Pago">Mercado Pago</option>
-                        </select>
                     </div>
 
                     <div class="alert alert-light border text-center py-2 mb-3">
@@ -105,21 +91,16 @@
             styles: estiloMinimalista
         });
 
-        // Configuración de Rutas (Línea entre pines)
         directionsService = new google.maps.DirectionsService();
         directionsRenderer = new google.maps.DirectionsRenderer({
             map: map,
-            suppressMarkers: false, // Muestra los pines A y B automáticos
-            polylineOptions: {
-                strokeColor: "#25d366",
-                strokeWeight: 5
-            }
+            suppressMarkers: false,
+            polylineOptions: { strokeColor: "#25d366", strokeWeight: 5 }
         });
 
         geocoder = new google.maps.Geocoder();
-        markerOrigen = new google.maps.Marker({ map: map, title: "Tu ubicación" });
+        markerOrigen = new google.maps.Marker({ map: map });
 
-        // Autocompletes
         const options = { componentRestrictions: { country: "ar" } };
         const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), options);
         const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), options);
@@ -135,7 +116,6 @@
         });
 
         autoD.addListener('place_changed', calcularRutaReal);
-
         obtenerUbicacion();
     }
 
@@ -148,7 +128,6 @@
                 geocoder.geocode({ location: userLatLng }, (results, status) => {
                     if (status === "OK" && results[0]) {
                         document.getElementById('origen').value = results[0].formatted_address;
-                        document.getElementById('ubicacion-status').innerText = "Ubicación lista ✅";
                     }
                 });
             });
@@ -167,8 +146,7 @@
             }, (response, status) => {
                 if (status === 'OK') {
                     directionsRenderer.setDirections(response);
-                    markerOrigen.setVisible(false); // Ocultamos el pin manual para usar el de Google
-
+                    markerOrigen.setVisible(false);
                     const km = response.routes[0].legs[0].distance.value / 1000;
                     const precio = Math.round(1200 + (km * 600));
                     document.getElementById('precio-estimado').innerText = `$ ${precio.toLocaleString('es-AR')}`;
@@ -188,7 +166,6 @@
             nombre: document.getElementById('user-name'),
             origen: document.getElementById('origen'),
             destino: document.getElementById('destino'),
-            pago: document.getElementById('forma-pago'),
             precio: document.getElementById('precio-estimado')
         };
 
@@ -198,35 +175,28 @@
             return;
         }
 
-        // 1. Carga
         btn.disabled = true;
         btnText.classList.add('d-none');
         btnLoader.classList.remove('d-none');
 
-        // 2. Éxito
         setTimeout(() => {
             btnLoader.classList.add('d-none');
             btnSuccess.classList.remove('d-none');
             btn.style.background = "#198754";
 
-            // 3. Enviar WhatsApp
-            const msg = `*NUEVO PEDIDO TAXIGO*\n👤 *Pasajero:* ${inputs.nombre.value}\n📍 *Origen:* ${inputs.origen.value}\n🏁 *Destino:* ${inputs.destino.value}\n💰 *Precio:* ${inputs.precio.innerText}\n💳 *Pago:* ${inputs.pago.value}`;
+            const msg = `*NUEVO PEDIDO TAXIGO*\n👤 *Pasajero:* ${inputs.nombre.value}\n📍 *Origen:* ${inputs.origen.value}\n🏁 *Destino:* ${inputs.destino.value}\n💰 *Precio:* ${inputs.precio.innerText}`;
             window.open(`https://wa.me/${miTelefono}?text=${encodeURIComponent(msg)}`, '_blank');
 
-            // 4. RESETEO DE SESIÓN
             setTimeout(() => {
-                // Limpiar campos
                 inputs.nombre.value = "";
                 inputs.destino.value = "";
                 inputs.precio.innerText = "$ 0";
                 
-                // Resetear botón
                 btn.disabled = true;
                 btn.style.background = "";
                 btnText.classList.remove('d-none');
                 btnSuccess.classList.add('d-none');
 
-                // Resetear Mapa
                 directionsRenderer.setDirections({routes: []});
                 markerOrigen.setVisible(true);
                 if (userLatLng) {
@@ -234,7 +204,6 @@
                     map.setZoom(14);
                 }
             }, 2000);
-
         }, 1200);
     }
 </script>
