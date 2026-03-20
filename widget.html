@@ -68,6 +68,16 @@
         .btn-whatsapp:hover { background: #1eb956; transform: translateY(-2px); color: white; }
         .btn-whatsapp:disabled { background: #adb5bd; cursor: not-allowed; transform: none; }
 
+        /* Estilos personalizados para el Toast */
+        .toast-container { z-index: 2000; }
+        .custom-toast {
+            border-radius: 15px;
+            border: none;
+            background: #212529;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
         @keyframes bounceIn {
             0% { transform: scale(0.3); opacity: 0; }
             50% { transform: scale(1.05); opacity: 1; }
@@ -86,6 +96,19 @@
 </head>
 
 <body>
+
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
+        <div id="liveToast" class="toast custom-toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+            <div class="toast-body d-flex align-items-center">
+                <i class="bi bi-whatsapp fs-3 text-success me-3"></i>
+                <div>
+                    <strong class="d-block mb-1 text-warning">¡Atención!</strong>
+                    Recuerda enviar tu pedido aprobado en WhatsApp. Nuestras operadoras te indicarán el tiempo de arribo.
+                </div>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
 
     <main class="container py-4">
         <div class="row justify-content-center">
@@ -162,10 +185,7 @@
 
     // Límites de la Provincia de Mendoza
     const mendozaBounds = {
-        north: -31.95,
-        south: -37.55,
-        west: -70.50,
-        east: -66.50,
+        north: -31.95, south: -37.55, west: -70.50, east: -66.50,
     };
 
     function initMap() {
@@ -180,35 +200,20 @@
             center: { lat: -32.8895, lng: -68.8458 }, 
             disableDefaultUI: true,
             styles: mapStyle,
-            restriction: {
-                latLngBounds: mendozaBounds,
-                strictBounds: false
-            }
+            restriction: { latLngBounds: mendozaBounds, strictBounds: false }
         });
 
         directionsService = new google.maps.DirectionsService();
         directionsRenderer = new google.maps.DirectionsRenderer({
             map: map,
             suppressMarkers: false,
-            polylineOptions: { 
-                strokeColor: "#ffc107", 
-                strokeWeight: 7,
-                strokeOpacity: 0.8
-            }
+            polylineOptions: { strokeColor: "#ffc107", strokeWeight: 7, strokeOpacity: 0.8 }
         });
 
         geocoder = new google.maps.Geocoder();
-        markerOrigen = new google.maps.Marker({ 
-            map: map, 
-            icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' 
-        });
+        markerOrigen = new google.maps.Marker({ map: map, icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' });
 
-        const options = { 
-            bounds: mendozaBounds,
-            componentRestrictions: { country: "ar" },
-            strictBounds: true 
-        };
-
+        const options = { bounds: mendozaBounds, componentRestrictions: { country: "ar" }, strictBounds: true };
         const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), options);
         const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), options);
 
@@ -223,45 +228,34 @@
         });
 
         autoD.addListener('place_changed', calcularViaje);
-
         const nombreGuardado = localStorage.getItem('taxigo_user_name');
         if (nombreGuardado) document.getElementById('user-name').value = nombreGuardado;
-
         obtenerUbicacionActual();
     }
 
     function obtenerUbicacionActual() {
         document.getElementById('map-spinner').classList.remove('fade-out');
-
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((pos) => {
                 userLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 markerOrigen.setPosition(userLatLng);
                 map.setCenter(userLatLng);
-                
                 geocoder.geocode({ location: userLatLng }, (results, status) => {
                     document.getElementById('map-spinner').classList.add('fade-out');
                     if (status === "OK" && results[0]) {
                         document.getElementById('origen').value = results[0].formatted_address;
                     }
                 });
-            }, () => {
-                document.getElementById('map-spinner').classList.add('fade-out');
-            });
-        } else {
-            document.getElementById('map-spinner').classList.add('fade-out');
-        }
+            }, () => { document.getElementById('map-spinner').classList.add('fade-out'); });
+        } else { document.getElementById('map-spinner').classList.add('fade-out'); }
     }
 
     function calcularViaje() {
         const o = document.getElementById('origen').value;
         const d = document.getElementById('destino').value;
-
         if (o && d && d.length > 4) {
             directionsService.route({
-                origin: o,
-                destination: d,
-                travelMode: google.maps.TravelMode.DRIVING
+                origin: o, destination: d, travelMode: google.maps.TravelMode.DRIVING
             }, (response, status) => {
                 if (status === 'OK') {
                     directionsRenderer.setDirections(response);
@@ -276,36 +270,39 @@
     }
 
     function validarYEnviarPedido() {
-        const btn = document.getElementById('btn-pedir');
-        const btnText = document.getElementById('btn-text');
-        const btnLoader = document.getElementById('btn-loader');
-        const btnSuccess = document.getElementById('btn-success-icon');
         const nombre = document.getElementById('user-name').value.trim();
-
         if (!nombre) {
             alert("⚠️ Por favor, ingresá tu nombre.");
             document.getElementById('user-name').focus();
             return;
         }
 
+        // --- DISPARAR AVISO FLOTANTE (TOAST) ---
+        const toastElement = document.getElementById('liveToast');
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+
+        const btn = document.getElementById('btn-pedir');
+        const btnText = document.getElementById('btn-text');
+        const btnLoader = document.getElementById('btn-loader');
+        const btnSuccess = document.getElementById('btn-success-icon');
+
         localStorage.setItem('taxigo_user_name', nombre);
         btn.disabled = true;
         btnText.classList.add('d-none');
         btnLoader.classList.remove('d-none');
 
+        // Retrasamos la salida a WhatsApp 2.5 segundos para que el usuario lea el aviso
         setTimeout(() => {
             btnLoader.classList.add('d-none');
             btnSuccess.classList.remove('d-none');
             btn.style.background = "#198754";
 
-            // Redirección directa a WhatsApp
             const msg = `*NUEVO PEDIDO TAXIGO*\n👤 *Pasajero:* ${nombre}\n📍 *Origen:* ${document.getElementById('origen').value}\n🏁 *Destino:* ${document.getElementById('destino').value}\n💰 *Precio:* ${document.getElementById('precio-estimado').innerText}\n\n_Solicito un taxi en el origen indicado._`;
             window.location.href = `https://api.whatsapp.com/send?phone=${miTelefono}&text=${encodeURIComponent(msg)}`;
 
-            setTimeout(() => {
-                location.reload(); 
-            }, 3000);
-        }, 1200);
+            setTimeout(() => { location.reload(); }, 3000);
+        }, 2500); 
     }
 </script>
 </body>
