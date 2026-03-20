@@ -31,6 +31,10 @@
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card main-card shadow-sm p-3">
+                      <small class="text-muted mb-2 d-block">
+                        <i class="bi bi-geo-alt-fill text-danger"></i> 
+                        <span id="ubicacion-status">Esperando ubicación...</span>
+                    </small>
                     <div id="map"></div>
 
                     <div class="mb-3">
@@ -62,7 +66,7 @@
                         </span>
 
                         <span id="btn-success-icon" class="d-none anim-success">
-                            <i class="bi bi-check-circle-fill me-2"></i> ¡PEDIDO LISTO!
+                            <i class="bi bi-check-circle-fill me-2"></i> ¡PEDIDO ENVIADO!
                         </span>
                     </button>
                 </div>
@@ -86,7 +90,7 @@
 
         map = new google.maps.Map(document.getElementById("map"), {
             zoom: 14, 
-            center: { lat: -32.8895, lng: -68.8458 },
+            center: { lat: -32.8895, lng: -68.8458 }, // Mendoza Centro
             disableDefaultUI: true,
             styles: estiloMinimalista
         });
@@ -128,8 +132,11 @@
                 geocoder.geocode({ location: userLatLng }, (results, status) => {
                     if (status === "OK" && results[0]) {
                         document.getElementById('origen').value = results[0].formatted_address;
+                        document.getElementById('ubicacion-status').innerText = "Ubicación detectada ✅";
                     }
                 });
+            }, () => {
+                document.getElementById('ubicacion-status').innerText = "Ingresa origen manualmente";
             });
         }
     }
@@ -170,7 +177,7 @@
         };
 
         if (!inputs.nombre.value.trim()) {
-            alert("⚠️ Por favor, ingresá tu nombre.");
+            alert("⚠️ Por favor, ingresá tu nombre para que el chofer te identifique.");
             inputs.nombre.focus();
             return;
         }
@@ -188,6 +195,7 @@
             window.open(`https://wa.me/${miTelefono}?text=${encodeURIComponent(msg)}`, '_blank');
 
             setTimeout(() => {
+                // RESETEO COMPLETO
                 inputs.nombre.value = "";
                 inputs.destino.value = "";
                 inputs.precio.innerText = "$ 0";
@@ -203,7 +211,7 @@
                     map.setCenter(userLatLng);
                     map.setZoom(14);
                 }
-            }, 2000);
+            }, 3000); // Damos un poco más de tiempo para que vea el éxito antes de resetear
         }, 1200);
     }
 </script>
