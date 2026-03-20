@@ -1,231 +1,270 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaxiGO Mendoza | Pedir Taxi</title>
-    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
     <style>
-        :root { --success: #25d366; }
-        body { background: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
-        .main-card { border: none; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-        #map { height: 175px; background: #e9ecef; border-radius: 16px; margin-bottom: 15px; width: 100%; }
-        .btn-whatsapp { 
-            background: var(--success); 
-            color: #fff; border: none; border-radius: 12px; 
-            padding: 15px; width: 100%; font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        .btn-whatsapp:hover { background: #1eb956; transform: translateY(-2px); }
-        .btn-whatsapp:disabled { background: #cbd5e0; transform: none; cursor: not-allowed; }
-        .form-control { border-radius: 10px; padding: 10px 15px; }
-        .form-control:focus { box-shadow: 0 0 0 0.25rem rgba(37, 211, 102, 0.2); border-color: var(--success); }
+        :root { --success: #25d366; --primary-taxi: #ffc107; }
+        body { background: #f4f4f4; font-family: 'Roboto', sans-serif; }
+        .main-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
+        #map { height: 250px; background: #eee; border-radius: 15px; margin-bottom: 15px; }
+        .btn-whatsapp { background: var(--success); color: #fff; padding: 15px; border-radius: 12px; border: none; width: 100%; font-weight: bold; transition: 0.3s; }
+        .btn-whatsapp:hover { background: #1eb956; }
+        .btn-whatsapp:disabled { background: #ccc; cursor: not-allowed; }
+        .resumen-label { font-size: 0.75rem; color: #6c757d; text-uppercase: uppercase; font-weight: bold; }
+        .resumen-valor { font-size: 0.95rem; color: #212529; display: block; margin-bottom: 8px; }
     </style>
 </head>
+
 <body>
 
     <main class="container py-4">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card main-card p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small class="text-muted">
-                            <i class="bi bi-geo-alt-fill text-danger"></i> 
-                            <span id="ubicacion-status">Localizando...</span>
-                        </small>
-                    </div>
+                <div class="card main-card shadow-sm p-3">
+                    <small class="text-muted mb-2 d-block">
+                        <i class="bi bi-geo-alt-fill text-danger"></i> 
+                        <span id="ubicacion-status">Localizando...</span>
+                    </small>
                     
                     <div id="map"></div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Tu Nombre</label>
-                        <input type="text" id="user-name" class="form-control" placeholder="Ej: Juan Pérez">
+                        <label class="form-label fw-bold small">¿Dónde estás?</label>
+                        <input type="text" id="origen" class="form-control form-control-lg" placeholder="Buscando tu ubicación...">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">¿Dónde estás? (Origen)</label>
-                        <input type="text" id="origen" class="form-control" placeholder="Buscando dirección...">
+                        <label class="form-label fw-bold small">¿A dónde vas?</label>
+                        <input type="text" id="destino" class="form-control form-control-lg" placeholder="Ej: Plaza Independencia">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">¿A dónde vas? (Destino)</label>
-                        <input type="text" id="destino" class="form-control" placeholder="Ej: Arístides Villanueva 123">
+                        <label class="form-label fw-bold small">Nombre y Apellido</label>
+                        <input type="text" id="user-name" class="form-control form-control-lg" placeholder="Tu nombre">
                     </div>
 
-                    <div class="row g-2 mb-4">
-                        <div class="col-7">
-                            <label class="form-label fw-bold small">Forma de Pago</label>
-                            <select id="forma-pago" class="form-select">
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Mercado Pago">Mercado Pago</option>
-                            </select>
-                        </div>
-                        <div class="col-5 text-center">
-                            <small class="text-muted d-block" style="font-size: 0.7rem;">PRECIO ESTIMADO</small>
-                            <h4 class="fw-bold text-primary mb-0" id="precio-estimado">$ 0</h4>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Forma de Pago</label>
+                        <select id="forma-pago" class="form-select">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Mercado Pago">Mercado Pago</option>
+                        </select>
                     </div>
 
-                    <button id="btn-pedir" onclick="validarYEnviar()" class="btn-whatsapp" disabled>
-                        <i class="bi bi-whatsapp"></i> PEDIR POR WHATSAPP
+                    <div class="alert alert-light border text-center py-2 mb-3">
+                        <small class="text-muted d-block">PRECIO ESTIMADO</small>
+                        <h4 class="fw-bold text-primary mb-0" id="precio-estimado">$ 0</h4>
+                    </div>
+
+                    <button id="btn-pedir" onclick="validarYEnviar()" class="btn-whatsapp w-100 py-3 fw-bold" disabled>
+                        <i class="bi bi-whatsapp me-2"></i> SOLICITAR COCHE
                     </button>
                 </div>
             </div>
         </div>
     </main>
 
-    <div class="modal fade" id="modalExito" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="fw-bold w-100 text-center mt-2">Resumen del Viaje</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                
-                <div class="bg-light p-3 rounded-4 mb-3 border">
-                    <div class="d-flex justify-content-between mb-2">
-                        <small class="text-muted text-uppercase">Pasajero</small>
-                        <span id="resumen-nombre" class="fw-bold">-</span>
+    <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0" style="border-radius: 25px;">
+                <div class="modal-body p-4 text-center">
+                    <i class="bi bi- taxi-front text-warning display-4"></i>
+                    <h4 class="fw-bold mb-4">Detalle de tu viaje</h4>
+                    
+                    <div class="text-start bg-light p-3 rounded-4 mb-3 border">
+                        <span class="resumen-label">Origen</span>
+                        <span id="det-origen" class="resumen-valor">-</span>
+                        
+                        <span class="resumen-label">Destino</span>
+                        <span id="det-destino" class="resumen-valor">-</span>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <span class="resumen-label">Pago</span>
+                                <span id="det-pago" class="resumen-valor">-</span>
+                            </div>
+                            <div class="col-6 text-end">
+                                <span class="resumen-label">Precio</span>
+                                <span id="det-precio" class="resumen-valor fw-bold text-primary">-</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <small class="text-muted d-block text-uppercase">Desde</small>
-                        <span id="resumen-origen" class="small fw-medium">-</span>
-                    </div>
-                    <div class="mb-2">
-                        <small class="text-muted d-block text-uppercase">Hacia</small>
-                        <span id="resumen-destino" class="small fw-medium">-</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                        <span id="resumen-pago" class="badge bg-dark">Efectivo</span>
-                        <span id="resumen-precio" class="h4 fw-bold text-primary mb-0">$ 0</span>
-                    </div>
-                </div>
 
-                <div class="alert alert-warning border-0 rounded-4 d-flex align-items-center mb-4">
-                    <i class="bi bi-clock-history fs-3 me-3"></i>
-                    <div>
-                        <small class="d-block fw-bold">TIEMPO ESTIMADO DE ESPERA</small>
-                        <span id="tiempo-espera" class="fs-5 fw-bold text-dark">5 - 8 min</span>
+                    <div class="alert alert-warning border-0 rounded-4 py-2">
+                        <i class="bi bi-clock me-2"></i> Espera estimada: <b id="det-espera">5-10 min</b>
                     </div>
-                </div>
 
-                <button onclick="confirmarWhatsApp()" class="btn-whatsapp py-3 shadow-sm mb-2">
-                    <i class="bi bi-whatsapp me-2"></i> CONFIRMAR Y PEDIR
-                </button>
-                
-                <button type="button" class="btn btn-link w-100 text-muted btn-sm text-decoration-none" data-bs-dismiss="modal">
-                    Modificar datos
-                </button>
+                    <button onclick="confirmarYEnviar()" class="btn-whatsapp mb-2">
+                        CONFIRMAR Y PEDIR
+                    </button>
+                    <button class="btn btn-light w-100 rounded-pill text-muted" data-bs-dismiss="modal">Modificar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI&libraries=places&callback=initMap" async defer></script>
 
-    <script>
-        let map, markerOrigen, markerDestino, service, geocoder;
-        let userLatLng = null; 
-        const miTelefono = "5492613871088";
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI&libraries=places&callback=initMap" async defer></script>
 
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 14,
-                center: { lat: -32.8895, lng: -68.8458 },
-                disableDefaultUI: true,
-                styles: [{ elementType: "geometry", stylers: [{ color: "#f5f5f5" }] }, { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] }]
-            });
+<script>
+    let map, markerOrigen, markerDestino, service, geocoder;
+    let userLatLng = null; 
+    const miTelefono = "5492613871088";
 
-            service = new google.maps.DistanceMatrixService();
-            geocoder = new google.maps.Geocoder();
+    function initMap() {
+        const estiloMinimalista = [
+            { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+            { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] }
+        ];
 
-            markerOrigen = new google.maps.Marker({ map: map, title: "Origen" });
-            markerDestino = new google.maps.Marker({ map: map, visible: false });
+        map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 14,
+            center: { lat: -32.8895, lng: -68.8458 },
+            disableDefaultUI: true,
+            styles: estiloMinimalista
+        });
 
-            const autoOrigen = new google.maps.places.Autocomplete(document.getElementById('origen'));
-            autoOrigen.addListener('place_changed', () => {
-                const place = autoOrigen.getPlace();
-                if (place.geometry) {
-                    userLatLng = place.geometry.location;
-                    markerOrigen.setPosition(userLatLng);
-                    map.panTo(userLatLng);
-                    calcularRutaReal();
-                }
-            });
+        service = new google.maps.DistanceMatrixService();
+        geocoder = new google.maps.Geocoder();
 
-            const autoDestino = new google.maps.places.Autocomplete(document.getElementById('destino'));
-            autoDestino.addListener('place_changed', () => {
-                const place = autoDestino.getPlace();
-                if (place.geometry) {
-                    markerDestino.setPosition(place.geometry.location);
-                    markerDestino.setVisible(true);
-                    calcularRutaReal();
-                }
-            });
+        markerOrigen = new google.maps.Marker({ map: map, title: "Origen" });
+        markerDestino = new google.maps.Marker({ map: map, visible: false });
 
-            obtenerUbicacion();
-        }
-
-        function obtenerUbicacion() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        userLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        markerOrigen.setPosition(userLatLng);
-                        map.setCenter(userLatLng);
-                        geocoder.geocode({ location: userLatLng }, (results, status) => {
-                            if (status === "OK" && results[0]) {
-                                document.getElementById('origen').value = results[0].formatted_address;
-                                document.getElementById('ubicacion-status').innerText = "Ubicación lista ✅";
-                            }
-                        });
-                    },
-                    () => { document.getElementById('ubicacion-status').innerText = "GPS no disponible"; }
-                );
+        const autoOrigen = new google.maps.places.Autocomplete(document.getElementById('origen'));
+        autoOrigen.addListener('place_changed', () => {
+            const place = autoOrigen.getPlace();
+            if (place.geometry) {
+                userLatLng = place.geometry.location;
+                markerOrigen.setPosition(userLatLng);
+                map.setCenter(userLatLng);
+                calcularRutaReal();
             }
+        });
+
+        const autoDestino = new google.maps.places.Autocomplete(document.getElementById('destino'));
+        autoDestino.addListener('place_changed', () => {
+            const place = autoDestino.getPlace();
+            if (place.geometry) {
+                markerDestino.setPosition(place.geometry.location);
+                markerDestino.setVisible(true);
+                calcularRutaReal();
+            }
+        });
+
+        obtenerUbicacion();
+    }
+
+    function obtenerUbicacion() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    userLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    markerOrigen.setPosition(userLatLng);
+                    map.setCenter(userLatLng);
+                    geocoder.geocode({ location: userLatLng }, (results, status) => {
+                        if (status === "OK" && results[0]) {
+                            document.getElementById('origen').value = results[0].formatted_address;
+                            document.getElementById('ubicacion-status').innerText = "Ubicación lista ✅";
+                        }
+                    });
+                },
+                () => { document.getElementById('ubicacion-status').innerText = "Favor de escribir tu ubicación"; }
+            );
+        }
+    }
+
+    function calcularRutaReal() {
+        const o = document.getElementById('origen').value;
+        const d = document.getElementById('destino').value;
+        if (!o || !d || d.length < 5) return;
+
+        service.getDistanceMatrix({
+            origins: [o],
+            destinations: [d],
+            travelMode: 'DRIVING'
+        }, (res, status) => {
+            if (status === 'OK' && res.rows[0].elements[0].status === 'OK') {
+                const km = res.rows[0].elements[0].distance.value / 1000;
+                const precio = 1200 + (km * 600);
+                document.getElementById('precio-estimado').innerText = `$ ${Math.round(precio).toLocaleString('es-AR')}`;
+                document.getElementById('btn-pedir').disabled = false;
+
+                const bounds = new google.maps.LatLngBounds();
+                bounds.extend(markerOrigen.getPosition());
+                bounds.extend(markerDestino.getPosition());
+                map.fitBounds(bounds, { padding: 50 });
+            }
+        });
+    }
+
+ function validarYEnviar() {
+        const nombre = document.getElementById('user-name').value.trim();
+        const origen = document.getElementById('origen').value.trim();
+        const destino = document.getElementById('destino').value.trim();
+        const precio = document.getElementById('precio-estimado').innerText;
+        const pago = document.getElementById('forma-pago').value;
+
+        // Validaciones básicas antes de mostrar el resumen
+        if (!nombre) {
+            alert("⚠️ Por favor, ingresá tu nombre para que el chofer pueda identificarte.");
+            return;
+        }
+        if (!origen || !destino || destino === "") {
+            alert("⚠️ Asegúrate de marcar un punto de origen y un destino.");
+            return;
         }
 
-        function calcularRutaReal() {
-            const origenVal = document.getElementById('origen').value;
-            const destinoVal = document.getElementById('destino').value;
-            if (!origenVal || !destinoVal || destinoVal.length < 3) return;
+        // Llenar datos en el modal de resumen
+        document.getElementById('det-origen').innerText = origen;
+        document.getElementById('det-destino').innerText = destino;
+        document.getElementById('det-pago').innerText = pago;
+        document.getElementById('det-precio').innerText = precio;
 
-            service.getDistanceMatrix({
-                origins: [origenVal],
-                destinations: [destinoVal],
-                travelMode: 'DRIVING'
-            }, (res, status) => {
-                if (status === 'OK' && res.rows[0].elements[0].status === 'OK') {
-                    const km = res.rows[0].elements[0].distance.value / 1000;
-                    const precio = 1200 + (km * 600);
-                    document.getElementById('precio-estimado').innerText = `$ ${Math.round(precio).toLocaleString('es-AR')}`;
-                    document.getElementById('btn-pedir').disabled = false;
+        // Mostrar el modal usando la instancia de Bootstrap
+        const modalElement = document.getElementById('modalDetalle');
+        const modalInstance = new bootstrap.Modal(modalElement);
+        modalInstance.show();
+    }
 
-                    const bounds = new google.maps.LatLngBounds();
-                    bounds.extend(markerOrigen.getPosition());
-                    bounds.extend(markerDestino.getPosition());
-                    map.fitBounds(bounds, { padding: 50 });
-                }
-            });
-        }
+    function confirmarYEnviar() {
+        // 1. Recolectar la información final
+        const nombre = document.getElementById('user-name').value;
+        const origen = document.getElementById('det-origen').innerText;
+        const destino = document.getElementById('det-destino').innerText;
+        const precio = document.getElementById('det-precio').innerText;
+        const pago = document.getElementById('det-pago').innerText;
+        const espera = document.getElementById('det-espera').innerText;
 
-        function validarYEnviar() {
-            const nombre = document.getElementById('user-name').value;
-            const origen = document.getElementById('origen').value;
-            const destino = document.getElementById('destino').value;
-            const precio = document.getElementById('precio-estimado').innerText;
-            const pago = document.getElementById('forma-pago').value;
+        // 2. Construir el mensaje con formato amigable para el operador
+        const mensaje = 
+            `🚕 *NUEVO PEDIDO - TAXIGO*\n` +
+            `--------------------------\n` +
+            `👤 *Pasajero:* ${nombre}\n` +
+            `📍 *Origen:* ${origen}\n` +
+            `🏁 *Destino:* ${destino}\n` +
+            `💰 *Precio Estimado:* ${precio}\n` +
+            `💳 *Método de Pago:* ${pago}\n` +
+            `⏳ *Tiempo Espera:* ${espera}\n` +
+            `--------------------------\n` +
+            `_Enviado desde la App Web_`;
 
-            if (!nombre) return alert("Por favor, ingresá tu nombre");
+        // 3. Crear el enlace de WhatsApp y abrir
+        const url = `https://wa.me/${miTelefono}?text=${encodeURIComponent(mensaje)}`;
+        
+        // Abrir WhatsApp en una nueva pestaña
+        window.open(url, '_blank');
 
-            const mensaje = `🚕 *PEDIDO TAXIGO*%0A👤 *Nombre:* ${nombre}%0A📍 *Origen:* ${origen}%0A🏁 *Destino:* ${destino}%0A💰 *Precio:* ${precio}%0A💳 *Pago:* ${pago}`;
-            window.open(`https://wa.me/${miTelefono}?text=${mensaje}`, '_blank');
-            new bootstrap.Modal(document.getElementById('modalExito')).show();
-        }
-    </script>
+        // Opcional: Cerrar el modal después de enviar
+        const modalElement = document.getElementById('modalDetalle');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        modalInstance.hide();
+    }
+</script>
 </body>
 </html>
