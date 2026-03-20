@@ -7,7 +7,8 @@
     <title>MiTaxi Mendoza | Pedir Taxi y Remises</title>
     
     <link rel="preconnect" href="https://maps.googleapis.com">
-    <link rel="preconnect" href="https://maps.gstatic.com">
+<link rel="preconnect" href="https://maps.gstatic.com">
+<link rel="dns-prefetch" href="https://maps.googleapis.com">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -112,119 +113,205 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // --- VARIABLES GLOBALES ---
-    let map, markerOrigen, directionsService, directionsRenderer, geocoder;
-    const API_KEY = "AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI"; // Reemplazar si es necesario
-    const miTelefono = "5492616706710";
-    const mendozaBounds = { north: -31.95, south: -37.55, west: -70.50, east: -66.50 };
+   /**
+ * CONFIGURACIÓN GLOBAL
+ */
+const API_KEY = "AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI";
+const MI_TEL = "5492616706710";
+const MENDOZA_BOUNDS = { north: -31.95, south: -37.55, west: -70.50, east: -66.50 };
 
-    // --- 2. OPTIMIZACIÓN: CARGA DIFERIDA DE LA API ---
-    function loadGoogleMaps() {
-        if (document.getElementById('google-maps-api')) return; // Evitar carga doble
+// Variables de instancia de Google Maps
+let map, markerOrigen, directionsService, directionsRenderer, geocoder;
+let mapsLoaded = false;
 
-        const script = document.createElement('script');
-        script.id = 'google-maps-api';
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=initMap`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
+/**
+ * 1. OPTIMIZACIÓN: CARGA BAJO DEMANDA (LAZY LOADING)
+ * No descargamos la API de Google hasta que sea necesario.
+ */
+function injectGoogleMaps() {
+    if (mapsLoaded) return;
+    mapsLoaded = true;
+
+    const script = document.createElement('script');
+    script.id = 'google-maps-api';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=initMap`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+}
+
+// Disparadores de carga:
+// A. Al hacer foco en cualquier input del formulario
+['origen', 'destino', 'user-name'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('focus', injectGoogleMaps, { once: true });
+});
+
+// B. Al hacer scroll y que el contenedor del mapa sea visible
+const mapObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+        injectGoogleMaps();
+        mapObserver.disconnect();
     }
+}, { threshold: 0.1 });
 
-    // Cargar después de que la ventana cargue (ahorra tiempo inicial)
-    window.addEventListener('load', () => {
-        setTimeout(loadGoogleMaps, 1500); // Espera 1.5s para priorizar el contenido visual
+const mapTarget = document.getElementById('map');
+if(mapTarget) mapObserver.observe(mapTarget);
+
+// C. Carga de seguridad tras 4 segundos de inactividad total
+window.addEventListener('load', () => {
+    setTimeout(injectGoogleMaps, 4000);
+    // Recuperar nombre del usuario de la sesión anterior
+    const savedName = localStorage.getItem('taxigo_user_name');
+    if(savedName) document.getElementById('user-name').value = savedName;
+});
+
+
+/**
+ * 2. LÓGICA DE GOOGLE MAPS (Callback)
+ */
+function initMap() {
+    // Inicialización del mapa centrada en Mendoza
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 14,
+        center: { lat: -32.8895, lng: -68.8458 },
+        disableDefaultUI: true,
+        gestureHandling: "greedy",
+        styles: [
+            { featureType: "poi", stylers: [{ visibility: "off" }] },
+            { featureType: "transit", stylers: [{ visibility: "off" }] }
+        ],
+        restriction: { latLngBounds: MENDOZA_BOUNDS, strictBounds: false }
     });
 
-    // Cargar inmediatamente si el usuario intenta escribir
-    ['origen', 'destino', 'user-name'].forEach(id => {
-        document.getElementById(id).addEventListener('focus', loadGoogleMaps, { once: true });
+    // Servicios de Google
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({ 
+        map: map, 
+        polylineOptions: { strokeColor: "#ffc107", strokeWeight: 6 } 
     });
+    geocoder = new google.maps.Geocoder();
+    markerOrigen = new google.maps.Marker({ map: map });
 
-    // --- LÓGICA DEL MAPA ---
-    function initMap() {
-        map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 14, center: { lat: -32.8895, lng: -68.8458 },
-            disableDefaultUI: true,
-            styles: [{ featureType: "transit", stylers: [{ visibility: "off" }] }],
-            restriction: { latLngBounds: mendozaBounds, strictBounds: false }
-        });
+    // Autocompletado de direcciones (Restringido a Mendoza, Argentina)
+    const acOptions = { 
+        bounds: MENDOZA_BOUNDS, 
+        componentRestrictions: { country: "ar" }, 
+        strictBounds: true 
+    };
+    
+    const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), acOptions);
+    const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), acOptions);
 
-        directionsService = new google.maps.DirectionsService();
-        directionsRenderer = new google.maps.DirectionsRenderer({ map: map, polylineOptions: { strokeColor: "#ffc107", strokeWeight: 6 } });
-        geocoder = new google.maps.Geocoder();
-        markerOrigen = new google.maps.Marker({ map: map });
-
-        const autocompleteOptions = { bounds: mendozaBounds, componentRestrictions: { country: "ar" }, strictBounds: true };
-        const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), autocompleteOptions);
-        const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), autocompleteOptions);
-
-        autoO.addListener('place_changed', () => {
-            const place = autoO.getPlace();
-            if (place.geometry) {
-                map.setCenter(place.geometry.location);
-                markerOrigen.setPosition(place.geometry.location);
-                calcularViaje();
-            }
-        });
-        autoD.addListener('place_changed', calcularViaje);
-
-        document.getElementById('user-name').value = localStorage.getItem('taxigo_user_name') || "";
-        obtenerUbicacionActual();
-    }
-
-    function obtenerUbicacionActual() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                markerOrigen.setPosition(userPos);
-                map.setCenter(userPos);
-                geocoder.geocode({ location: userPos }, (results, status) => {
-                    document.getElementById('map-spinner').classList.add('fade-out');
-                    if (status === "OK" && results[0]) document.getElementById('origen').value = results[0].formatted_address;
-                });
-            }, () => document.getElementById('map-spinner').classList.add('fade-out'));
-        } else {
-            document.getElementById('map-spinner').classList.add('fade-out');
+    autoO.addListener('place_changed', () => {
+        const p = autoO.getPlace();
+        if (p.geometry) {
+            map.setCenter(p.geometry.location);
+            markerOrigen.setPosition(p.geometry.location);
+            calcularViaje();
         }
-    }
+    });
+    autoD.addListener('place_changed', calcularViaje);
 
-    function calcularViaje() {
-        const o = document.getElementById('origen').value;
-        const d = document.getElementById('destino').value;
-        if (o && d) {
-            directionsService.route({ origin: o, destination: d, travelMode: 'DRIVING' }, (response, status) => {
-                if (status === 'OK') {
-                    directionsRenderer.setDirections(response);
-                    markerOrigen.setVisible(false);
-                    const km = response.routes[0].legs[0].distance.value / 1000;
-                    const precio = Math.round(1350 + (km * 680)); // Tarifa Mendoza 2026
-                    document.getElementById('precio-estimado').innerText = `$ ${precio.toLocaleString('es-AR')}`;
-                    document.getElementById('btn-pedir').disabled = false;
+    // Intentar geolocalizar al usuario inmediatamente
+    obtenerUbicacionGPS();
+}
+
+/**
+ * 3. GEOLOCALIZACIÓN Y CÁLCULOS
+ */
+function obtenerUbicacionGPS() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            markerOrigen.setPosition(coord);
+            map.setCenter(coord);
+            
+            geocoder.geocode({ location: coord }, (results, status) => {
+                const loader = document.getElementById('map-spinner');
+                if(loader) loader.classList.add('fade-out');
+                
+                if (status === "OK" && results[0]) {
+                    document.getElementById('origen').value = results[0].formatted_address;
                 }
             });
-        }
+        }, () => {
+            const loader = document.getElementById('map-spinner');
+            if(loader) loader.classList.add('fade-out');
+        });
+    }
+}
+
+function calcularViaje() {
+    const o = document.getElementById('origen').value;
+    const d = document.getElementById('destino').value;
+    
+    if (o && d) {
+        directionsService.route({
+            origin: o,
+            destination: d,
+            travelMode: 'DRIVING'
+        }, (res, status) => {
+            if (status === 'OK') {
+                directionsRenderer.setDirections(res);
+                markerOrigen.setVisible(false);
+                
+                // Cálculo de tarifa (Ajustado a Mendoza Marzo 2026)
+                const distanciaKm = res.routes[0].legs[0].distance.value / 1000;
+                const tarifaBase = 1400;
+                const precioPorKm = 750;
+                const total = Math.round(tarifaBase + (distanciaKm * precioPorKm));
+                
+                const precioEl = document.getElementById('precio-estimado');
+                precioEl.innerText = `$ ${total.toLocaleString('es-AR')}`;
+                
+                // Habilitar botón de pedido
+                document.getElementById('btn-pedir').disabled = false;
+            }
+        });
+    }
+}
+
+/**
+ * 4. ENVÍO DE DATOS A WHATSAPP
+ */
+function validarYEnviarPedido() {
+    const nombre = document.getElementById('user-name').value.trim();
+    const origen = document.getElementById('origen').value;
+    const destino = document.getElementById('destino').value;
+    const precio = document.getElementById('precio-estimado').innerText;
+
+    if (!nombre) {
+        alert("⚠️ Por favor, ingresá tu nombre para que el chofer pueda identificarte.");
+        return;
     }
 
-    function validarYEnviarPedido() {
-        const nombre = document.getElementById('user-name').value.trim();
-        const origen = document.getElementById('origen').value;
-        const destino = document.getElementById('destino').value;
-        const precio = document.getElementById('precio-estimado').innerText;
+    // Persistencia simple
+    localStorage.setItem('taxigo_user_name', nombre);
 
-        if (!nombre) { alert("⚠️ Ingresá tu nombre."); return; }
-
-        localStorage.setItem('taxigo_user_name', nombre);
-        const toast = new bootstrap.Toast(document.getElementById('liveToast'));
+    // UI: Mostrar Toast (Si usas Bootstrap)
+    const toastEl = document.getElementById('liveToast');
+    if(toastEl) {
+        const toast = new bootstrap.Toast(toastEl);
         toast.show();
-
-        const mapaLink = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
-        
-        const msg = `*NUEVO PEDIDO MITAXI*\n👤 *Pasajero:* ${nombre}\n📍 *Desde:* ${origen}\n🏁 *Hacia:* ${destino}\n💰 *Precio Est:* ${precio}\n🗺️ *Ruta:* ${mapaLink}`;
-
-        setTimeout(() => {
-            window.location.href = `https://api.whatsapp.com/send?phone=${miTelefono}&text=${encodeURIComponent(msg)}`;
-        }, 1200);
     }
+
+    // Generar link de navegación para el chofer
+    const mapaLink = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
+    
+    // Construir mensaje
+    const msg = `*NUEVO PEDIDO MITAXI*\n` +
+                `👤 *Pasajero:* ${nombre}\n` +
+                `📍 *Desde:* ${origen}\n` +
+                `🏁 *Hacia:* ${destino}\n` +
+                `💰 *Precio Estimado:* ${precio}\n\n` +
+                `🗺️ *Ruta Sugerida:*\n${mapaLink}`;
+
+    // Pequeño delay para que el usuario vea la notificación antes de saltar a WhatsApp
+    setTimeout(() => {
+        window.location.href = `https://wa.me/${MI_TEL}?text=${encodeURIComponent(msg)}`;
+    }, 1200);
+}
 </script>
 </body>
 </html>
