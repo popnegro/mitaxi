@@ -19,7 +19,6 @@
             border: none;
         }
 
-        /* --- CONTENEDOR DE MAPA Y SPINNER --- */
         .map-wrapper {
             position: relative;
             margin-bottom: 15px;
@@ -32,7 +31,6 @@
             border: 1px solid #dee2e6;
         }
 
-        /* Spinner sobre el mapa */
         .map-loader {
             position: absolute;
             top: 0; left: 0;
@@ -48,7 +46,6 @@
         }
 
         .map-loader.fade-out { opacity: 0; pointer-events: none; }
-        /* ------------------------------------ */
 
         .form-control-lg { border-radius: 12px; font-size: 1rem; border: 1px solid #ced4da; }
         .form-control-lg:focus { border-color: var(--taxi-yellow); box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25); }
@@ -143,7 +140,7 @@
                         </span>
 
                         <span id="btn-success-icon" class="d-none">
-                            <i class="bi bi-check-circle-fill me-2 anim-success"></i> ¡ENVIANDO!
+                            <i class="bi bi-check-circle-fill me-2 anim-success"></i> ¡LISTO!
                         </span>
                     </button>
 
@@ -163,6 +160,14 @@
     let userLatLng = null;
     const miTelefono = "5492613871088";
 
+    // Límites de la Provincia de Mendoza
+    const mendozaBounds = {
+        north: -31.95,
+        south: -37.55,
+        west: -70.50,
+        east: -66.50,
+    };
+
     function initMap() {
         const mapStyle = [
             { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
@@ -171,10 +176,14 @@
         ];
 
         map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 15, 
+            zoom: 14, 
             center: { lat: -32.8895, lng: -68.8458 }, 
             disableDefaultUI: true,
-            styles: mapStyle
+            styles: mapStyle,
+            restriction: {
+                latLngBounds: mendozaBounds,
+                strictBounds: false
+            }
         });
 
         directionsService = new google.maps.DirectionsService();
@@ -194,7 +203,12 @@
             icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' 
         });
 
-        const options = { componentRestrictions: { country: "ar" } };
+        const options = { 
+            bounds: mendozaBounds,
+            componentRestrictions: { country: "ar" },
+            strictBounds: true 
+        };
+
         const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), options);
         const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), options);
 
@@ -217,7 +231,6 @@
     }
 
     function obtenerUbicacionActual() {
-        // Aseguramos que el spinner sea visible al empezar
         document.getElementById('map-spinner').classList.remove('fade-out');
 
         if (navigator.geolocation) {
@@ -227,29 +240,17 @@
                 map.setCenter(userLatLng);
                 
                 geocoder.geocode({ location: userLatLng }, (results, status) => {
-                    // Ocultar spinner con efecto fade
                     document.getElementById('map-spinner').classList.add('fade-out');
-                    
                     if (status === "OK" && results[0]) {
                         document.getElementById('origen').value = results[0].formatted_address;
-                        actualizarStatus("Ubicación lista ✅", "text-success", false);
                     }
                 });
             }, () => {
                 document.getElementById('map-spinner').classList.add('fade-out');
-                actualizarStatus("Ingresa origen manualmente", "text-muted", false);
             });
         } else {
             document.getElementById('map-spinner').classList.add('fade-out');
         }
-    }
-
-    function actualizarStatus(texto, clase, animar) {
-        const s = document.getElementById('ubicacion-status');
-        const dot = document.getElementById('status-dot');
-        s.innerText = texto;
-        s.className = `small fw-medium ${clase}`;
-        if(!animar) dot.classList.remove('spinner-grow');
     }
 
     function calcularViaje() {
@@ -297,18 +298,12 @@
             btnSuccess.classList.remove('d-none');
             btn.style.background = "#198754";
 
-            const msg = `*NUEVO PEDIDO TAXIGO*\n👤 *Pasajero:* ${nombre}\n📍 *Origen:* ${document.getElementById('origen').value}\n🏁 *Destino:* ${document.getElementById('destino').value}\n💰 *Precio:* ${document.getElementById('precio-estimado').innerText}\n\n_Por favor, envíe este mensaje para confirmar el taxi._`;
+            // Redirección directa a WhatsApp
+            const msg = `*NUEVO PEDIDO TAXIGO*\n👤 *Pasajero:* ${nombre}\n📍 *Origen:* ${document.getElementById('origen').value}\n🏁 *Destino:* ${document.getElementById('destino').value}\n💰 *Precio:* ${document.getElementById('precio-estimado').innerText}\n\n_Solicito un taxi en el origen indicado._`;
             window.location.href = `https://api.whatsapp.com/send?phone=${miTelefono}&text=${encodeURIComponent(msg)}`;
 
             setTimeout(() => {
-                document.getElementById('destino').value = "";
-                document.getElementById('precio-estimado').innerText = "$ 0";
-                btn.disabled = true;
-                btn.style.background = "";
-                btnText.classList.remove('d-none');
-                btnSuccess.classList.add('d-none');
-                directionsRenderer.setDirections({routes: []});
-                markerOrigen.setVisible(true);
+                location.reload(); 
             }, 3000);
         }, 1200);
     }
