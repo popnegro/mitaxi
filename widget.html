@@ -19,6 +19,7 @@
             border: none;
         }
 
+        /* --- CONTENEDOR DE MAPA Y SPINNER --- */
         .map-wrapper {
             position: relative;
             margin-bottom: 15px;
@@ -31,6 +32,7 @@
             border: 1px solid #dee2e6;
         }
 
+        /* Spinner sobre el mapa */
         .map-loader {
             position: absolute;
             top: 0; left: 0;
@@ -46,24 +48,7 @@
         }
 
         .map-loader.fade-out { opacity: 0; pointer-events: none; }
-
-        /* ESTILOS DEL MODAL INFERIOR */
-        .offcanvas-bottom {
-            height: auto;
-            border-top-left-radius: 25px;
-            border-top-right-radius: 25px;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
-            border-top: 5px solid var(--taxi-yellow);
-        }
-        .time-badge {
-            background: #fff3cd;
-            color: #856404;
-            padding: 10px 20px;
-            border-radius: 15px;
-            font-weight: 800;
-            display: inline-block;
-            border: 1px solid #ffeeba;
-        }
+        /* ------------------------------------ */
 
         .form-control-lg { border-radius: 12px; font-size: 1rem; border: 1px solid #ced4da; }
         .form-control-lg:focus { border-color: var(--taxi-yellow); box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25); }
@@ -154,11 +139,11 @@
                         
                         <span id="btn-loader" class="d-none">
                             <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            BUSCANDO TAXI...
+                            PROCESANDO...
                         </span>
 
                         <span id="btn-success-icon" class="d-none">
-                            <i class="bi bi-check-circle-fill me-2 anim-success"></i> ¡LOGRADO!
+                            <i class="bi bi-check-circle-fill me-2 anim-success"></i> ¡ENVIANDO!
                         </span>
                     </button>
 
@@ -169,23 +154,6 @@
             </div>
         </div>
     </main>
-
-    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="timeModal" aria-labelledby="timeModalLabel" data-bs-backdrop="static">
-        <div class="offcanvas-body text-center py-4">
-            <div class="mb-2">
-                <i class="bi bi-taxi-front-fill text-warning" style="font-size: 3rem;"></i>
-            </div>
-            <h4 class="fw-bold" id="timeModalLabel">¡Taxi Confirmado!</h4>
-            <p class="text-muted">Hemos localizado una unidad cerca de tu posición.</p>
-            <div class="time-badge fs-3 mb-4">
-                <i class="bi bi-clock-history me-2"></i> Llega en <span id="tiempo-llegada">...</span>
-            </div>
-            <p class="small text-secondary mb-4">Presiona el botón para enviar los datos por WhatsApp al chofer.</p>
-            <button type="button" id="btn-confirmar-whatsapp" class="btn btn-dark w-100 rounded-pill py-3 fw-bold">
-                CONTINUAR A WHATSAPP <i class="bi bi-arrow-right ms-2"></i>
-            </button>
-        </div>
-    </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI&libraries=places&callback=initMap" async defer></script>
@@ -249,6 +217,7 @@
     }
 
     function obtenerUbicacionActual() {
+        // Aseguramos que el spinner sea visible al empezar
         document.getElementById('map-spinner').classList.remove('fade-out');
 
         if (navigator.geolocation) {
@@ -258,17 +227,29 @@
                 map.setCenter(userLatLng);
                 
                 geocoder.geocode({ location: userLatLng }, (results, status) => {
+                    // Ocultar spinner con efecto fade
                     document.getElementById('map-spinner').classList.add('fade-out');
+                    
                     if (status === "OK" && results[0]) {
                         document.getElementById('origen').value = results[0].formatted_address;
+                        actualizarStatus("Ubicación lista ✅", "text-success", false);
                     }
                 });
             }, () => {
                 document.getElementById('map-spinner').classList.add('fade-out');
+                actualizarStatus("Ingresa origen manualmente", "text-muted", false);
             });
         } else {
             document.getElementById('map-spinner').classList.add('fade-out');
         }
+    }
+
+    function actualizarStatus(texto, clase, animar) {
+        const s = document.getElementById('ubicacion-status');
+        const dot = document.getElementById('status-dot');
+        s.innerText = texto;
+        s.className = `small fw-medium ${clase}`;
+        if(!animar) dot.classList.remove('spinner-grow');
     }
 
     function calcularViaje() {
@@ -306,35 +287,30 @@
             return;
         }
 
-        // 1. Iniciamos animación del botón
         localStorage.setItem('taxigo_user_name', nombre);
         btn.disabled = true;
         btnText.classList.add('d-none');
         btnLoader.classList.remove('d-none');
 
-        // 2. Simulamos búsqueda de 2 segundos
         setTimeout(() => {
             btnLoader.classList.add('d-none');
             btnSuccess.classList.remove('d-none');
             btn.style.background = "#198754";
 
-            // 3. Mostramos el Modal en lugar de ir directo a WhatsApp
-            const timeModal = new bootstrap.Offcanvas(document.getElementById('timeModal'));
-            const minRandom = Math.floor(Math.random() * (8 - 3 + 1) + 3);
-            document.getElementById('tiempo-llegada').innerText = `${minRandom} min`;
-            timeModal.show();
+            const msg = `*NUEVO PEDIDO TAXIGO*\n👤 *Pasajero:* ${nombre}\n📍 *Origen:* ${document.getElementById('origen').value}\n🏁 *Destino:* ${document.getElementById('destino').value}\n💰 *Precio:* ${document.getElementById('precio-estimado').innerText}\n\n_Por favor, envíe este mensaje para confirmar el taxi._`;
+            window.location.href = `https://api.whatsapp.com/send?phone=${miTelefono}&text=${encodeURIComponent(msg)}`;
 
-            // 4. Configuramos el botón del Modal para que ahora sí abra WhatsApp
-            document.getElementById('btn-confirmar-whatsapp').onclick = function() {
-                const msg = `*NUEVO PEDIDO TAXIGO*\n👤 *Pasajero:* ${nombre}\n📍 *Origen:* ${document.getElementById('origen').value}\n🏁 *Destino:* ${document.getElementById('destino').value}\n💰 *Precio:* ${document.getElementById('precio-estimado').innerText}\n⏱️ *Tiempo est:* ${minRandom} min\n\n_Confirmando viaje..._`;
-                window.location.href = `https://api.whatsapp.com/send?phone=${miTelefono}&text=${encodeURIComponent(msg)}`;
-                
-                // Reset de la interfaz después de un momento
-                setTimeout(() => {
-                    location.reload(); // Recargamos para limpiar todo
-                }, 1000);
-            };
-        }, 1500);
+            setTimeout(() => {
+                document.getElementById('destino').value = "";
+                document.getElementById('precio-estimado').innerText = "$ 0";
+                btn.disabled = true;
+                btn.style.background = "";
+                btnText.classList.remove('d-none');
+                btnSuccess.classList.add('d-none');
+                directionsRenderer.setDirections({routes: []});
+                markerOrigen.setVisible(true);
+            }, 3000);
+        }, 1200);
     }
 </script>
 </body>
