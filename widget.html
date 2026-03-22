@@ -24,35 +24,28 @@
             background: #000;
             font-family: 'Segoe UI', Roboto, sans-serif;
             overflow-x: hidden;
+            padding-bottom: 80px; /* Espacio para el widget de Brevo */
         }
 
-        /* 1. Eliminamos el padding superior y lateral de la tarjeta solo en la zona del mapa */
         .main-card {
             padding: 0 !important;
-            /* Quitamos el padding general */
             overflow: hidden;
-            /* Asegura que el mapa respete las esquinas redondeadas de la card */
             background: #fff;
             border-radius: 18px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             border: none;
         }
 
-        /* 2. El contenedor del mapa ahora toca los bordes */
         .map-wrapper {
             position: relative;
             margin-bottom: 0;
-            /* Eliminamos el margen inferior para que pegue con los inputs */
             height: 180px;
             width: 100%;
             border-radius: 0;
-            /* El redondeo lo da el padre (.main-card) */
             border: none;
             border-bottom: 1px solid #eee;
-            /* Opcional: una línea sutil para separar del formulario */
         }
 
-        /* 3. Añadimos padding solo al cuerpo del formulario para que los inputs no toquen los bordes */
         .form-container-inner {
             padding: 20px 24px 24px 24px;
         }
@@ -142,8 +135,6 @@
             cursor: not-allowed;
         }
 
-
-        /* Contenedor del Toast como Footer */
         .toast-container.footer-fixed {
             bottom: 0 !important;
             top: auto !important;
@@ -161,33 +152,15 @@
             max-width: 100% !important;
             margin: 0;
             border: none !important;
-            /* Línea de acento superior */
             border-radius: 8px 8px 0 0 !important;
-            /* Redondeado solo arriba */
             background: black;
             backdrop-filter: blur(10px);
-            /* Efecto de desenfoque premium */
             box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.3);
         }
 
         .custom-toast.footer-style .toast-body {
             padding: 20px;
             color: white;
-        }
-
-        /* Animación de entrada desde el fondo */
-        .toast.showing {
-            animation: slideUp 0.4s ease-out;
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(100%);
-            }
-
-            to {
-                transform: translateY(0);
-            }
         }
 
         #night-label {
@@ -216,6 +189,7 @@
             </div>
         </div>
     </div>
+
     <main class="container py-3">
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
@@ -225,7 +199,7 @@
 
                 <div class="card main-card">
                     <div class="map-wrapper">
-                        <div id="map-spinner" class="map-loader">...</div>
+                        <div id="map-spinner" class="map-loader">Cargando Mapa de Mendoza...</div>
                         <div id="map"></div>
                     </div>
 
@@ -251,7 +225,7 @@
                         <div class="mb-2">
                             <label class="form-label fw-bold text-uppercase">Tu Nombre</label>
                             <input type="text" id="user-name" class="form-control form-control-lg"
-                                placeholder="Ej: Juan Pérez">
+                                placeholder="Ej: Luis Grasso" oninput="sincronizarBrevo(this.value)">
                         </div>
 
                         <div class="price-badge text-center">
@@ -267,6 +241,7 @@
                     </div>
                 </div>
             </div>
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -274,41 +249,21 @@
     <script>
         const API_KEY = "AIzaSyAmTzHBhtQ4E8BG6DL0xdrEOYdZmQEBXkI";
         const MI_TEL = "5492616706710";
-        const MENDOZA_BOUNDS = { north: -31.95, south: -37.55, west: -70.50, east: -66.50 };
+        const MENDOZA_BOUNDS = { north: -32.80, south: -33.00, west: -68.95, east: -68.75 };
 
         let map, markerOrigen, directionsService, directionsRenderer, geocoder;
-        let mapsLoaded = false;
+        let latO, lngO, latD, lngD;
 
         function injectGoogleMaps() {
-            if (mapsLoaded) return;
-            mapsLoaded = true;
-
             const script = document.createElement('script');
-            script.id = 'google-maps-api';
             script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=initMap`;
             script.async = true;
             script.defer = true;
             document.head.appendChild(script);
         }
 
-        // Disparadores de carga
-        ['origen', 'destino', 'user-name'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('focus', injectGoogleMaps, { once: true });
-        });
-
-        const mapObserver = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                injectGoogleMaps();
-                mapObserver.disconnect();
-            }
-        }, { threshold: 0.1 });
-
-        const mapTarget = document.getElementById('map');
-        if (mapTarget) mapObserver.observe(mapTarget);
-
         window.addEventListener('load', () => {
-            setTimeout(injectGoogleMaps, 4000);
+            setTimeout(injectGoogleMaps, 1000);
             const savedName = localStorage.getItem('taxigo_user_name');
             if (savedName) document.getElementById('user-name').value = savedName;
         });
@@ -318,8 +273,7 @@
                 zoom: 14,
                 center: { lat: -32.8895, lng: -68.8458 },
                 disableDefaultUI: true,
-                gestureHandling: "greedy",
-                restriction: { latLngBounds: MENDOZA_BOUNDS, strictBounds: false }
+                gestureHandling: "greedy"
             });
 
             directionsService = new google.maps.DirectionsService();
@@ -330,24 +284,29 @@
             geocoder = new google.maps.Geocoder();
             markerOrigen = new google.maps.Marker({ map: map });
 
-            const acOptions = {
-                bounds: MENDOZA_BOUNDS,
-                componentRestrictions: { country: "ar" },
-                strictBounds: true
-            };
-
+            const acOptions = { componentRestrictions: { country: "ar" } };
             const autoO = new google.maps.places.Autocomplete(document.getElementById('origen'), acOptions);
             const autoD = new google.maps.places.Autocomplete(document.getElementById('destino'), acOptions);
 
             autoO.addListener('place_changed', () => {
                 const p = autoO.getPlace();
                 if (p.geometry) {
+                    latO = p.geometry.location.lat();
+                    lngO = p.geometry.location.lng();
                     map.setCenter(p.geometry.location);
                     markerOrigen.setPosition(p.geometry.location);
                     calcularViaje();
                 }
             });
-            autoD.addListener('place_changed', calcularViaje);
+
+            autoD.addListener('place_changed', () => {
+                const p = autoD.getPlace();
+                if (p.geometry) {
+                    latD = p.geometry.location.lat();
+                    lngD = p.geometry.location.lng();
+                    calcularViaje();
+                }
+            });
 
             obtenerUbicacionGPS();
         }
@@ -355,7 +314,9 @@
         function obtenerUbicacionGPS() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((pos) => {
-                    const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    latO = pos.coords.latitude;
+                    lngO = pos.coords.longitude;
+                    const coord = { lat: latO, lng: lngO };
                     markerOrigen.setPosition(coord);
                     map.setCenter(coord);
 
@@ -365,9 +326,7 @@
                             document.getElementById('origen').value = results[0].formatted_address;
                         }
                     });
-                }, () => {
-                    document.getElementById('map-spinner').classList.add('fade-out');
-                });
+                }, () => document.getElementById('map-spinner').classList.add('fade-out'));
             } else {
                 document.getElementById('map-spinner').classList.add('fade-out');
             }
@@ -386,24 +345,14 @@
                     if (status === 'OK') {
                         directionsRenderer.setDirections(res);
                         markerOrigen.setVisible(false);
-
                         const distanciaKm = res.routes[0].legs[0].distance.value / 1000;
-
-                        // --- Lógica de Tarifa Mendoza 2026 ---
+                        
                         const hora = new Date().getHours();
                         const esNocturno = (hora >= 22 || hora < 6);
+                        let tarifaBase = esNocturno ? 1680 : 1400;
+                        let precioPorKm = esNocturno ? 900 : 750;
 
-                        let tarifaBase = 1400;
-                        let precioPorKm = 750;
-
-                        if (esNocturno) {
-                            tarifaBase *= 1.2;
-                            precioPorKm *= 1.2;
-                            document.getElementById('night-label').style.display = 'block';
-                        } else {
-                            document.getElementById('night-label').style.display = 'none';
-                        }
-
+                        document.getElementById('night-label').style.display = esNocturno ? 'block' : 'none';
                         const total = Math.round(tarifaBase + (distanciaKm * precioPorKm));
                         document.getElementById('precio-estimado').innerText = `$ ${total.toLocaleString('es-AR')}`;
                         document.getElementById('btn-pedir').disabled = false;
@@ -424,44 +373,52 @@
                 return;
             }
 
-            // --- LÓGICA DE ETA (Simulada para Mendoza) ---
-            // En un MVP, simulamos que hay un móvil a 4-8 minutos de distancia.
-            const minutosETA = Math.floor(Math.random() * (12 - 4 + 1)) + 8;
-            document.getElementById('eta-text').innerText = `Móvil disponible a ${minutosETA} min.`;
+            localStorage.setItem('taxigo_user_name', nombre);
+            const minutosETA = Math.floor(Math.random() * 5) + 5;
+            document.getElementById('eta-text').innerText = `Móvil asignado a ${minutosETA} min.`;
 
-            // UI: Mostrar Toast
             const toastEl = document.getElementById('liveToast');
-            const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
-            toast.show();
+            new bootstrap.Toast(toastEl).show();
 
-            // Feedback en el botón
             const btn = document.getElementById('btn-pedir');
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>ASIGNANDO MÓVIL...`;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>ASIGNANDO...`;
 
-            // Link y Mensaje
-            const mapaLink = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
+            // Enlace con Coordenadas para el GPS del Chofer
+            const linkRuta = `https://www.google.com/maps/dir/?api=1&origin=${latO},${lngO}&destination=${latD},${lngD}&travelmode=driving`;
 
             const msg = `*NUEVO PEDIDO MITAXI*\n` +
                 `👤 *Pasajero:* ${nombre}\n` +
                 `📍 *Origen:* ${origen}\n` +
                 `🏁 *Destino:* ${destino}\n` +
                 `💰 *Estimado:* ${precio}\n` +
-                `⏳ *ETA:* ${minutosETA} minutos\n\n` +
-                `🗺️ *Ruta:* ${mapaLink}`;
+                `⏳ *ETA:* ${minutosETA} min\n\n` +
+                `🗺️ *GPS Navegación:* \n${linkRuta}`;
 
-            // Redirección con pequeño delay para que lean el ETA en el toast
             setTimeout(() => {
                 window.location.href = `https://wa.me/${MI_TEL}?text=${encodeURIComponent(msg)}`;
-
-                // Reset por si vuelve atrás
                 setTimeout(() => {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-whatsapp me-2"></i>PEDIR VIAJE AHORA';
-                }, 2000);
-            }, 2500);
+                }, 3000);
+            }, 2000);
+        }
+
+        function sincronizarBrevo(nombre) {
+            if (window.BrevoConversations) {
+                BrevoConversations('updateContact', { firstname: nombre });
+            }
         }
     </script>
-</body>
 
+    <script>
+        (function(d, w, c) {
+            w.BrevoConversationsID = '67201df18f77be95230c9447';
+            w[c] = w[c] || function() { (w[c].q = w[c].q || []).push(arguments); };
+            var s = d.createElement('script'); s.async = true;
+            s.src = 'https://conversations-widget.brevo.com/brevo-conversations.js';
+            if (d.head) d.head.appendChild(s);
+        })(document, window, 'BrevoConversations');
+    </script>
+</body>
 </html>
